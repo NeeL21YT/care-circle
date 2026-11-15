@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /** Targets are at least 48px tall (WCAG 2.5.8 asks for 24px; elders benefit from more). */
 export const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-transparent font-semibold whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-60 aria-disabled:pointer-events-none aria-disabled:opacity-70 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-transparent max-w-full font-semibold whitespace-normal text-center sm:whitespace-nowrap transition-colors select-none disabled:pointer-events-none disabled:opacity-60 aria-disabled:pointer-events-none aria-disabled:opacity-70 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
   {
     variants: {
       variant: {
@@ -19,8 +19,9 @@ export const buttonVariants = cva(
       size: {
         default: "min-h-12 px-5 text-base",
         sm: "min-h-10 px-4 text-[0.95rem]",
-        lg: "min-h-14 px-7 text-lg",
-        xl: "min-h-20 px-8 text-xl",
+        lg: "min-h-14 px-6 text-lg sm:px-7",
+        // Big call-to-action: comfortable on a phone, extra large from tablet width up.
+        xl: "min-h-16 px-6 text-lg sm:min-h-20 sm:px-8 sm:text-xl",
         icon: "size-12",
       },
     },

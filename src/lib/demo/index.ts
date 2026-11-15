@@ -12,11 +12,11 @@ export const DEMO_UIDS = { caregiver: "demo_meera", patient: "demo_asha", family
 export type DemoRole = keyof typeof DEMO_UIDS;
 export const DEMO_ROLES = Object.keys(DEMO_UIDS) as DemoRole[];
 
-export const DEMO_PEOPLE: Record<DemoRole, { name: string; email: string; label: string }> = {
+export const DEMO_PEOPLE: Record<DemoRole, { name: string; email: string; label: string; short: string }> = {
   // ".invalid" is reserved (RFC 2606) and can never receive mail.
-  caregiver: { name: "Meera Verma", email: "demo.meera@carecircle.invalid", label: "Caregiver (daughter)" },
-  patient: { name: "Asha Verma", email: "demo.asha@carecircle.invalid", label: "Patient (simple view)" },
-  family: { name: "Rahul Verma", email: "demo.rahul@carecircle.invalid", label: "Family member (son)" },
+  caregiver: { name: "Meera Verma", email: "demo.meera@carecircle.invalid", label: "Caregiver (daughter)", short: "Caregiver" },
+  patient: { name: "Asha Verma", email: "demo.asha@carecircle.invalid", label: "Patient (simple view)", short: "Patient" },
+  family: { name: "Rahul Verma", email: "demo.rahul@carecircle.invalid", label: "Family member (son)", short: "Family" },
 };
 
 export const isDemoUid = (uid: string) => uid.startsWith("demo_");

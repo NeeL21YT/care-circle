@@ -66,23 +66,25 @@ export default async function Home() {
   if (await getCurrentUser()) redirect("/dashboard");
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6">
-        <p className="flex items-center gap-2 text-2xl font-extrabold text-primary"><HeartHandshake aria-hidden="true" className="size-8" /> Care Circle</p>
-        <nav aria-label="Account" className="flex gap-2">
-          <Link href="/login" className={buttonVariants({ variant: "ghost" })}>Sign in</Link>
-          <Link href="/register" className={buttonVariants()}>Create account</Link>
+      <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-4 sm:py-6">
+        <p className="flex items-center gap-1.5 whitespace-nowrap text-lg font-extrabold text-primary sm:gap-2 sm:text-2xl"><HeartHandshake aria-hidden="true" className="size-6 sm:size-8" /> Care Circle</p>
+        <nav aria-label="Account" className="flex gap-1 sm:gap-2">
+          <Link href="/login" className={buttonVariants({ variant: "ghost", className: "min-h-11 px-3 sm:min-h-12 sm:px-5" })}>Sign in</Link>
+          <Link href="/register" className={buttonVariants({ className: "min-h-11 px-3.5 sm:min-h-12 sm:px-5" })}>
+            <span className="sm:hidden">Sign up</span><span className="hidden sm:inline">Create account</span>
+          </Link>
         </nav>
       </header>
 
       <main id="main-content" className="flex-1">
         <section className="border-b border-border" style={{ backgroundImage: "linear-gradient(180deg, var(--surface-tint), var(--background))" }}>
-          <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-10 sm:py-14 grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
             <div>
-              <h1 id="page-title" tabIndex={-1} className="text-4xl font-extrabold sm:text-5xl lg:text-6xl">Care that stays simple, for everyone involved.</h1>
-              <p className="mt-6 max-w-xl text-xl text-muted-foreground">Care Circle helps older adults follow their medicine routines and helps families and caregivers stay informed, without the confusion.</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/register" className={buttonVariants({ size: "xl" })}>Get started</Link>
-                <Link href="/login" className={buttonVariants({ size: "xl", variant: "outline" })}>Sign in</Link>
+              <h1 id="page-title" tabIndex={-1} className="text-3xl font-extrabold sm:text-5xl lg:text-6xl">Care that stays simple, for everyone involved.</h1>
+              <p className="mt-5 max-w-xl text-lg text-muted-foreground sm:mt-6 sm:text-xl">Care Circle helps older adults follow their medicine routines and helps families and caregivers stay informed, without the confusion.</p>
+              <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+                <Link href="/register" className={buttonVariants({ size: "xl", className: "w-full sm:w-auto" })}>Get started</Link>
+                <Link href="/login" className={buttonVariants({ size: "xl", variant: "outline", className: "w-full sm:w-auto" })}>Sign in</Link>
               </div>
               {demoEnabled() && (
                 <div className="mt-8 rounded-2xl border-2 border-primary bg-surface p-4">
@@ -101,8 +103,8 @@ export default async function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="features" className="mx-auto w-full max-w-6xl px-4 py-16">
-          <h2 id="features" className="text-center text-3xl font-bold">Everything the family needs, in one place</h2>
+        <section aria-labelledby="features" className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-16">
+          <h2 id="features" className="text-center text-2xl font-bold sm:text-3xl">Everything the family needs, in one place</h2>
           <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
               <li key={f.title}>
@@ -117,8 +119,8 @@ export default async function Home() {
         </section>
 
         <section aria-labelledby="how" className="border-y border-border bg-surface">
-          <div className="mx-auto w-full max-w-6xl px-4 py-16">
-            <h2 id="how" className="text-center text-3xl font-bold">How it works</h2>
+          <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-16">
+            <h2 id="how" className="text-center text-2xl font-bold sm:text-3xl">How it works</h2>
             <ol className="mt-10 grid gap-8 md:grid-cols-3">
               {STEPS.map((s, i) => (
                 <li key={s.title} className="flex flex-col items-center text-center">
@@ -131,15 +133,15 @@ export default async function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="trust" className="mx-auto w-full max-w-4xl px-4 py-16">
-          <div className="card-surface rounded-3xl border border-border bg-secondary p-8 text-center text-secondary-foreground">
+        <section aria-labelledby="trust" className="mx-auto w-full max-w-4xl px-4 py-12 sm:py-16">
+          <div className="card-surface rounded-3xl border border-border bg-secondary p-6 text-center sm:p-8 text-secondary-foreground">
             <ShieldCheck aria-hidden="true" className="mx-auto size-10 text-primary" />
             <h2 id="trust" className="mt-3 text-2xl font-bold">Careful by design</h2>
             <p className="mx-auto mt-3 max-w-2xl text-lg">Care Circle does not give medical advice, diagnose, or change any medicine. It records what people report and helps them follow the plan their own doctor gave them. &quot;Reported taken&quot; always means the person said so, never that it was checked.</p>
           </div>
           <div className="mt-12 text-center">
             <h2 className="text-2xl font-bold">Ready to bring the family together?</h2>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
               <Link href="/register" className={buttonVariants({ size: "xl" })}>Create a free account</Link>
               <Link href="/login" className={buttonVariants({ size: "xl", variant: "outline" })}>Sign in</Link>
             </div>

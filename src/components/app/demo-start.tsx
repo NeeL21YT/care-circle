@@ -8,7 +8,7 @@ import { fullPageLoad } from "@/lib/client/navigate";
 import { DEMO_PEOPLE, DEMO_ROLES, type DemoRole } from "@/lib/demo/roles";
 
 /** Starts the demo as one of the made-up people. Shared by the landing page and the in-app banner. */
-export function DemoRoleButtons({ current, size = "default" }: { current?: DemoRole | null; size?: "default" | "lg" }) {
+export function DemoRoleButtons({ current, size = "default", inline = false }: { current?: DemoRole | null; size?: "default" | "sm" | "lg"; inline?: boolean }) {
   const announce = useAnnounce();
   const [busy, setBusy] = useState<DemoRole | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,10 +31,10 @@ export function DemoRoleButtons({ current, size = "default" }: { current?: DemoR
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
+      <div className={inline ? "flex flex-wrap gap-2" : "flex flex-col gap-2 sm:flex-row sm:flex-wrap"}>
         {DEMO_ROLES.map((r) => (
-          <Button key={r} type="button" size={size} variant={current === r ? "default" : "outline"} disabled={busy !== null} aria-pressed={current === r} onClick={() => start(r)}>
-            {busy === r ? "Opening…" : DEMO_PEOPLE[r].label}
+          <Button key={r} type="button" size={size} className={inline ? undefined : "w-full sm:w-auto"} variant={current === r ? "default" : "outline"} disabled={busy !== null} aria-pressed={current === r} aria-label={inline ? `View as ${DEMO_PEOPLE[r].label}` : undefined} onClick={() => start(r)}>
+            {busy === r ? "Opening…" : inline ? DEMO_PEOPLE[r].short : DEMO_PEOPLE[r].label}
           </Button>
         ))}
       </div>

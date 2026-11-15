@@ -79,6 +79,8 @@
 
 /* In-app text size preference. Everything uses rem, so this scales the UI. */
 :root { font-size: 112.5%; }
+/* Phones: 17px default so layouts fit; the Large and Extra large preferences below still win. */
+@media (max-width: 480px) { :root { font-size: 106.25%; } }
 :root[data-text-size="large"] { font-size: 131.25%; }
 :root[data-text-size="xlarge"] { font-size: 150%; }
 
@@ -133,7 +135,10 @@
 @layer base {
   * { border-color: var(--border); }
   html { font-family: var(--font-sans); scroll-padding-top: 5rem; }
+  img, svg, video { max-width: 100%; }
   body {
+    /* Safety net against any stray wide element causing sideways scrolling on phones. */
+    overflow-x: clip;
     background: var(--background);
     color: var(--foreground);
     line-height: 1.6;
@@ -156,6 +161,10 @@
   /* Minimum 24x24 CSS px target size (WCAG 2.5.8); controls override to 48px. */
   button, [role="button"], a, input, select, textarea, summary { min-height: 1.5rem; }
 }
+
+/* Scroll containers must contain absolutely positioned children (the visually hidden labels we add to buttons),
+   otherwise those labels sit past the right edge and make the whole page wider than a phone screen. */
+.overflow-x-auto, .overflow-auto, .overflow-y-auto { position: relative; }
 
 /* Visually hidden but available to assistive technology. */
 .sr-only {

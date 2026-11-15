@@ -32,7 +32,7 @@ export default async function PatientLayout({ children, params }: { children: Re
   ].filter(Boolean) as NavItem[];
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
       <aside><PatientNav items={items} patientName={patient.fullName} /></aside>
       <main id="main-content" className="min-w-0">{mine ? <PinGate>{children}</PinGate> : children}</main>
     </div>

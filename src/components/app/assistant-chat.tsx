@@ -109,7 +109,7 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
   const pendingById = new Map(pending.map((p) => [p.id, p]));
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
       <aside aria-label="Your conversations" className="space-y-2">
         <Button type="button" variant="outline" className="w-full" onClick={newChat}><Plus aria-hidden="true" /> New conversation</Button>
         <ul className="space-y-1">

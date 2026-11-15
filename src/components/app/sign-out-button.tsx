@@ -14,7 +14,7 @@ export function SignOutButton() {
     fullPageLoad("/");
   }
   return (
-    <Button variant="ghost" onClick={go}>
+    <Button variant="ghost" onClick={go} className="px-3 sm:px-5">
       <LogOut aria-hidden="true" /> Sign out
     </Button>
   );

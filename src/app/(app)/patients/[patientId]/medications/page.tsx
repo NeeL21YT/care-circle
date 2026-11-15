@@ -48,7 +48,28 @@ export default async function MedicationsPage({ params }: { params: Promise<{ pa
           {canWrite ? "Add the first medicine to start dose reminders." : "Your care team has not added any medicines yet."}
         </EmptyState>
       ) : canWrite ? (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+        <>
+        {/* Phones: one card per medicine. The wide table below is for tablets and up. */}
+        <ul aria-label={`Medications for ${patient.fullName}`} className="space-y-4 md:hidden">
+          {meds.map((m) => (
+            <li key={m.id}>
+              <Card>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h2 className="text-xl font-bold">{m.name}</h2>
+                  <MedicationStatusChip status={m.status} />
+                </div>
+                <dl className="mt-3 space-y-1 text-base">
+                  <div><dt className="inline font-semibold">Dose: </dt><dd className="inline">{doseLabel(m)} ({m.form}, {m.route.toLowerCase()})</dd></div>
+                  <div><dt className="inline font-semibold">When: </dt><dd className="inline">{describeSchedule(m.schedule)}</dd></div>
+                  {m.instructions && <div><dt className="inline font-semibold">Instructions: </dt><dd className="inline">{m.instructions}</dd></div>}
+                  <div className="text-muted-foreground"><dt className="sr-only">Dates</dt><dd>{dates(m)}</dd></div>
+                </dl>
+                <div className="mt-4"><MedicationActions patientId={patientId} medicationId={m.id} name={m.name} status={m.status} /></div>
+              </Card>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-2xl border border-border bg-surface md:block">
           <table className="w-full min-w-[56rem] border-collapse text-left text-base">
             <caption className="p-4 text-left text-lg font-bold">Medications for {patient.fullName}, active first</caption>
             <thead>
@@ -73,6 +94,7 @@ export default async function MedicationsPage({ params }: { params: Promise<{ pa
             </tbody>
           </table>
         </div>
+        </>
       ) : (
         <ul className="space-y-4">
           {meds.map((m) => (
