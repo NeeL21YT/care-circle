@@ -4,7 +4,7 @@
 
 One family, one shared care plan: everyone can see what needs attention, who is responsible, and what the patient has reported. Care Circle never gives medical advice, never diagnoses and never changes a medicine on its own. People decide; software keeps them informed.
 
-- **Live demo:** _add the Vercel URL here after deploying_
+- **Live demo:** https://care-circle-tan.vercel.app (use the **Try the demo** buttons on the home page; no sign-up needed)
 - **Stack:** Next.js 16 (App Router, strict TypeScript), Tailwind CSS 4, Base UI primitives, Zod, Firebase Auth + Firestore (Admin SDK on the server), Supabase Storage (private bucket), Brevo email, Gemini / OpenRouter / OpenCode for AI, Luxon, Vitest.
 - **More docs:** [API](docs/API.md) · [Firestore schema](docs/FIRESTORE_SCHEMA.md) · [AI design and safety](docs/AI.md) · [Accessibility and manual test script](docs/ACCESSIBILITY.md)
 
@@ -115,7 +115,7 @@ A chat helper that answers from the signed-in user's own records through backend
 npm install
 cp .env.example .env.local      # fill it in (sections 6 and 7)
 npm run dev                     # http://localhost:3000
-npm test                        # 278 tests; no Firebase or AI key needed
+npm test                        # 294 tests; no Firebase or AI key needed
 npm run typecheck && npm run lint && npm run build
 ```
 
@@ -138,11 +138,12 @@ All variables are documented in `.env.example`. Never commit `.env.local`.
 1. Import the repository in **Vercel** (Next.js, default build settings) and add every variable from `.env.example`. Set `APP_URL` to the production URL.
 2. Add the Vercel domain to Firebase Authentication > Authorized domains.
 3. **Scheduler:** reminders need something to call `POST /api/jobs/tick` with `Authorization: Bearer $CRON_SECRET`. Vercel's free plan only allows daily crons, so this repo ships a free GitHub Actions workflow (`.github/workflows/tick.yml`) that calls it every 5 minutes. In the GitHub repository settings > Secrets and variables > Actions, add `APP_URL` (for example `https://your-app.vercel.app`) and `CRON_SECRET` (same value as in Vercel). Alternatives: the Cloud Function in `functions/` (needs the Firebase Blaze plan) or any external pinger.
-4. Register two test accounts, create a patient, and walk through [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md#manual-test-script).
+4. **Deployment notes (learned the hard way):** `vercel.json` runs the functions in `iad1`, next to the Firestore database (`nam5`), which makes pages several times faster than a far-away region. `package.json` has an npm `overrides` entry pinning `jwks-rsa` 3: Vercel's runtime does not allow `require()` of ES modules, and `firebase-admin` 14 otherwise pulls an ES-only `jose` that crashes every request with `ERR_REQUIRE_ESM`. Do not remove it unless `firebase-admin` stops needing it. Set `DEMO_MODE=true` for the demo buttons.
+5. Register two test accounts, create a patient, and walk through [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md#manual-test-script).
 
 ## 8. Testing
 
-`npm test` runs **278 tests in 28 files**:
+`npm test` runs **294 tests in 31 files**:
 
 - **Domain:** scheduling including DST, dose state machine, adherence maths, escalation and quiet hours, permissions, handover builder, reconciliation matching and comparison.
 - **Services** (against an in-memory Firestore double): cross-patient isolation, role and sharing rules, invitations, medication and dose lifecycle, notification idempotency and retries, documents, the prescription scanner, the assistant (tools, confirmation, injection, quotas), tasks, handovers, reconciliation, AI provider fallback.
