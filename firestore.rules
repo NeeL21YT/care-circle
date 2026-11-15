@@ -1,0 +1,109 @@
+rules_version = '2';
+
+// DEFENCE IN DEPTH. The app reads and writes Firestore only through the
+// Next.js server (Firebase Admin SDK bypasses these rules), so clients get
+//   - NO writes, ever;
+//   - read access only to the few documents the browser might ever need,
+//     and only for ACTIVE members of that patient's care circle.
+// If a client-side SDK feature (e.g. realtime listeners) is added later, widen
+// reads here deliberately and add emulator tests.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function membership(patientId) {
+      return get(/databases/$(database)/documents/patients/$(patientId)/memberships/$(request.auth.uid));
+    }
+    function isActiveMember(patientId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/patients/$(patientId)/memberships/$(request.auth.uid))
+        && membership(patientId).data.status == 'active';
+    }
+    function role(patientId) { return membership(patientId).data.role; }
+    function shares(patientId, category) {
+      return role(patientId) in ['patient', 'primary_caregiver']
+        || membership(patientId).data.permissions[category] == true;
+    }
+
+    // A user may read their own profile document. No client writes.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Invitations are looked up by hash on the server only.
+    match /invitations/{id} {
+      allow read, write: if false;
+    }
+
+    match /patients/{patientId} {
+      allow read: if isActiveMember(patientId);
+      allow write: if false;
+
+      match /memberships/{uid} {
+        // You can read your own membership; caregivers can read the circle.
+        allow read: if signedIn() && (request.auth.uid == uid
+          || (isActiveMember(patientId) && role(patientId) == 'primary_caregiver'));
+        allow write: if false;
+      }
+
+      match /medications/{id} {
+        allow read: if isActiveMember(patientId) && shares(patientId, 'medications');
+        allow write: if false;
+        match /versions/{v} { allow read, write: if false; }
+      }
+
+      match /doseOccurrences/{id} {
+        allow read: if isActiveMember(patientId)
+          && (shares(patientId, 'medications') || shares(patientId, 'adherence'));
+        allow write: if false;
+      }
+
+      match /doseEvents/{id} {
+        allow read: if isActiveMember(patientId) && shares(patientId, 'adherence');
+        allow write: if false;
+      }
+
+      match /appointments/{id} {
+        allow read: if isActiveMember(patientId) && shares(patientId, 'appointments');
+        allow write: if false;
+      }
+
+      match /documents/{id} {
+        allow read: if isActiveMember(patientId) && shares(patientId, 'documents')
+          && (role(patientId) != 'patient' || resource.data.sharedWithPatient == true);
+        allow write: if false;
+      }
+
+      // Each person reads only their own preferences and notifications.
+      match /notificationPreferences/{uid} {
+        allow read: if signedIn() && request.auth.uid == uid && isActiveMember(patientId);
+        allow write: if false;
+      }
+      match /notifications/{id} {
+        allow read: if signedIn() && isActiveMember(patientId) && resource.data.recipientUid == request.auth.uid;
+        allow write: if false;
+      }
+
+      // Audit log: server-only.
+      match /auditEvents/{id} { allow read, write: if false; }
+
+      // Server-only by design. Every read goes through the API, which applies role,
+      // share-permission and per-user rules (e.g. patients see only their own tasks,
+      // AI conversations are private to their author) that these rules cannot express.
+      match /careTasks/{id} { allow read, write: if false; }
+      match /careActivity/{id} { allow read, write: if false; }
+      match /careHandovers/{id} { allow read, write: if false; }
+      match /prescriptionExtractions/{id} { allow read, write: if false; }
+      match /prescriptionReconciliations/{id} { allow read, write: if false; }
+      match /aiUsage/{id} { allow read, write: if false; }
+      match /aiConversations/{id} {
+        allow read, write: if false;
+        match /{sub=**} { allow read, write: if false; }
+      }
+    }
+
+    // Everything else is denied.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

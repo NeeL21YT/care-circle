@@ -1,0 +1,185 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Design tokens. All text/background pairs meet WCAG 2.2 AA (4.5:1 for text,
+  3:1 for UI components and focus indicators). Sizes are in rem so they scale
+  with the user's browser text size AND the in-app text-size preference.
+*/
+:root {
+  --background: #f5f8f7;
+  --foreground: #14282a;
+  --surface: #ffffff;
+  --surface-tint: #eaf4f2;
+  --card: #ffffff;
+  --card-foreground: #14282a;
+  --popover: #ffffff;
+  --popover-foreground: #14282a;
+  --primary: #0b6b63;
+  --primary-foreground: #ffffff;
+  --primary-hover: #095a53;
+  --secondary: #e3efec;
+  --secondary-foreground: #0d3b37;
+  --muted: #eef3f2;
+  --muted-foreground: #4a5d5c;
+  --accent: #dcebe8;
+  --accent-foreground: #0d3b37;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --success: #17613a;
+  --success-bg: #e4f4ea;
+  --warning: #7a4b00;
+  --warning-bg: #fff1d6;
+  --danger-bg: #fdeceb;
+  --info: #0b4f8a;
+  --info-bg: #e3f0fb;
+  --border: #c5d3d1;
+  --input: #7b8d8b;
+  --ring: #0a4f49;
+  --chart-1: #0b6b63;
+  --chart-2: #b45309;
+  --chart-3: #4b5563;
+  --chart-4: #6d28d9;
+  --chart-5: #b3261e;
+  --radius: 0.875rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #14282a;
+  --sidebar-border: #c5d3d1;
+}
+
+/* High contrast preference (in-app toggle or OS "prefers-contrast: more"). */
+:root[data-contrast="high"] {
+  --background: #ffffff;
+  --foreground: #000000;
+  --surface-tint: #ffffff;
+  --muted-foreground: #1f2d2c;
+  --primary: #00423d;
+  --primary-hover: #002f2b;
+  --border: #000000;
+  --input: #000000;
+  --ring: #000000;
+  --secondary: #ffffff;
+  --muted: #ffffff;
+  --accent: #e6e6e6;
+}
+@media (prefers-contrast: more) {
+  :root:not([data-contrast="normal"]) {
+    --background: #ffffff;
+    --foreground: #000000;
+    --muted-foreground: #1f2d2c;
+    --primary: #00423d;
+    --primary-hover: #002f2b;
+    --border: #000000;
+    --input: #000000;
+    --ring: #000000;
+  }
+}
+
+/* In-app text size preference. Everything uses rem, so this scales the UI. */
+:root { font-size: 112.5%; }
+:root[data-text-size="large"] { font-size: 131.25%; }
+:root[data-text-size="xlarge"] { font-size: 150%; }
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-tint: var(--surface-tint);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * { border-color: var(--border); }
+  html { font-family: var(--font-sans); scroll-padding-top: 5rem; }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+
+  /* Visible focus for every interactive element: 3px ring + white halo so it
+     stays visible on both light and dark surfaces (WCAG 2.4.11 / 2.4.13). */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  :focus:not(:focus-visible) { outline: none; }
+  /* Programmatic focus targets (headings, regions) get no ring on click. */
+  [tabindex="-1"]:focus { outline: none; box-shadow: none; }
+  [tabindex="-1"]:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+
+  /* Minimum 24x24 CSS px target size (WCAG 2.5.8); controls override to 48px. */
+  button, [role="button"], a, input, select, textarea, summary { min-height: 1.5rem; }
+}
+
+/* Visually hidden but available to assistive technology. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;
+}
+.sr-only-focusable:focus, .sr-only-focusable:focus-visible {
+  position: fixed; top: 0.75rem; left: 0.75rem; width: auto; height: auto;
+  margin: 0; padding: 0.75rem 1.25rem; overflow: visible; clip: auto;
+  z-index: 100; white-space: normal;
+}
+
+/* Respect reduced motion: no animation or smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Windows High Contrast / forced colors: keep borders and focus visible. */
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight; }
+  .card-surface, .status-chip { border: 2px solid CanvasText; }
+}

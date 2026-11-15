@@ -1,0 +1,30 @@
+name: Reminder scheduler
+
+# Free scheduler for hosts without per-minute cron (e.g. Vercel Hobby).
+# Calls the idempotent job endpoint, so an extra or late run is harmless.
+# Needs repository secrets: APP_URL (https://your-app.example) and CRON_SECRET.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call /api/jobs/tick
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL and CRON_SECRET secrets are not set; skipping."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/out -w '%{http_code}' -X POST "$APP_URL/api/jobs/tick" \
+            -H "Authorization: Bearer $CRON_SECRET" --max-time 60)
+          echo "HTTP $code"
+          [ "$code" = "200" ]
