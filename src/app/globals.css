@@ -192,3 +192,13 @@
   :focus-visible { outline: 3px solid Highlight; }
   .card-surface, .status-chip { border: 2px solid CanvasText; }
 }
+
+/* Printing (e.g. "Save as PDF" for the doctor brief): only the page content, no app chrome. */
+@media print {
+  header, aside, [aria-label="Demo mode"], .print-hide, [data-print-hide], nav[aria-label$="sections"] { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  .card-surface { box-shadow: none !important; }
+  a { color: inherit !important; text-decoration: none !important; }
+  @page { margin: 14mm; }
+}

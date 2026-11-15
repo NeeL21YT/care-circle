@@ -28,7 +28,10 @@ Run with a real screen reader (VoiceOver on macOS/iOS, NVDA on Windows, TalkBack
 7. **Reconciliation:** read the comparison table with table navigation; differences should be announced as "possibly different".
 8. **Care assistant:** send a question; the reply should be announced. Ask it to snooze a reminder and confirm that **Yes, do it** and **No, cancel** are reachable and clearly named.
 9. **Tasks and handover:** complete a task with the keyboard; share and acknowledge a handover; check the activity feed is readable.
-10. **Display settings:** increase text size to the maximum and enable high contrast; check nothing is clipped at 200% and 400% zoom (320 px wide).
-11. **Mobile:** repeat steps 1, 4 and 8 on a phone with TalkBack or VoiceOver.
+10. **Assistant on every page:** on any patient page, open **Ask the assistant** with the keyboard. Focus should move into the panel, Escape should close it and return focus to the button, and the reply should be announced. Check that "Open ..." buttons under a reply are reachable.
+11. **Weekly report and check-in:** read the report with headings navigation; answer the check-in with the radio group and confirm the supportive message is announced.
+12. **Doctor brief:** read the tables and lists, add a question and an observation, then use **Print or save as PDF** and check the printout has no menus or buttons.
+13. **Display settings:** increase text size to the maximum and enable high contrast; check nothing is clipped at 200% and 400% zoom (320 px wide).
+14. **Mobile:** repeat steps 1, 4 and 8 on a phone with TalkBack or VoiceOver.
 
 Record failures as issues with the screen reader, browser and steps.

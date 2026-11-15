@@ -1,8 +1,9 @@
-import { ClipboardCheck, ArrowRightLeft, MessageCircle, ScanLine, Bell, BellRing, UserRound, CalendarDays, FileText, History, Home, Pill, Settings, Users } from "lucide-react";
+import { BarChart3, ClipboardCheck, ArrowRightLeft, MessageCircle, ScanLine, Bell, BellRing, UserRound, CalendarDays, FileText, History, Home, Pill, Settings, Users } from "lucide-react";
 import { requirePagePatient } from "@/lib/auth/page";
 import { can } from "@/lib/domain/permissions";
 import { PatientNav, type NavItem } from "@/components/app/patient-nav";
 import { PinGate } from "@/components/app/pin-gate";
+import { AssistantProvider } from "@/components/app/assistant-provider";
 
 /**
  * Every page under /patients/[patientId] is authorized here first (membership
@@ -19,6 +20,7 @@ export default async function PatientLayout({ children, params }: { children: Re
     { href: `${base}/assistant`, label: "Care assistant", icon: <MessageCircle /> },
     can(membership, "medications:write") && { href: `${base}/scanner`, label: "Prescription scanner", icon: <ScanLine /> },
     can(membership, "tasks:read") && { href: `${base}/tasks`, label: mine ? "My tasks" : "Care tasks", icon: <ClipboardCheck /> },
+    can(membership, "tasks:write") && { href: `${base}/weekly`, label: "Weekly report", icon: <BarChart3 /> },
     can(membership, "handovers:read") && { href: `${base}/handover`, label: "Care handover", icon: <ArrowRightLeft /> },
     can(membership, "appointments:read") && { href: `${base}/appointments`, label: mine ? "My appointments" : "Appointments", icon: <CalendarDays /> },
     can(membership, "documents:read") && { href: `${base}/documents`, label: mine ? "My documents" : "Documents", icon: <FileText /> },
@@ -32,9 +34,11 @@ export default async function PatientLayout({ children, params }: { children: Re
   ].filter(Boolean) as NavItem[];
 
   return (
-    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside><PatientNav items={items} patientName={patient.fullName} /></aside>
-      <main id="main-content" className="min-w-0">{mine ? <PinGate>{children}</PinGate> : children}</main>
-    </div>
+    <AssistantProvider patientId={patientId} canAct={can(membership, "doses:respond")}>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 pb-24 pt-8 sm:pb-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <aside><PatientNav items={items} patientName={patient.fullName} /></aside>
+        <main id="main-content" className="min-w-0">{mine ? <PinGate>{children}</PinGate> : children}</main>
+      </div>
+    </AssistantProvider>
   );
 }

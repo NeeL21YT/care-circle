@@ -37,7 +37,9 @@ export type SubCollection =
   | "careTasks"
   | "careActivity"
   | "careHandovers"
-  | "prescriptionReconciliations";
+  | "prescriptionReconciliations"
+  | "caregiverCheckins"
+  | "doctorBriefs";
 
 /** Recursively converts Firestore Timestamps to Dates. */
 export function fromData<T>(value: unknown): T {

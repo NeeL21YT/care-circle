@@ -51,14 +51,25 @@ Care Circle goes beyond a reminder app. It is a **care coordination system**: de
 - Shows *possible* differences side by side. A person decides each one: update, keep, new medicine, ask the doctor, or reject
 - Every change is saved in the medicine's history with its source
 
-## 🤖 Care Assistant
-- Chat that answers from the signed-in person's own records using backend-run tools
+## 🤖 Care Assistant — part of every page
+- A button on **every patient page** opens the assistant beside what you are looking at. It knows which page you are on, so "what is this?" makes sense
+- Pages hand it questions too: **Ask about these tasks**, **Ask about medicines**, **What needs attention today?**
+- It reads medicines, doses, appointments, documents, **care tasks, recent family activity and the latest handover**, only what *you* are allowed to see
+- Replies can take you to the right page with a button ("Open Care handover", "Open Prescription scanner"), built by the server from a fixed list and checked against your permissions
 - Cannot change anything by itself: it can only *propose*, and a person presses **Confirm**
 - Refuses dose and clinical questions; urgent wording gets a fixed "contact emergency services" reply
 
 ## ✅ Care Tasks & 🔄 Care Handover
 - Assign, accept, hand over and complete tasks, with a visible activity history
 - **Handover**: a summary of what happened, built from real records, reviewed by its author, shared with one person and acknowledged. Unresolved items stay unresolved
+
+## 📊 Weekly Report & Wellbeing Check-in
+- A plain-words summary of the last 7 days for caregivers, **worked out by code from real records** (no AI): doses reported taken, skipped and unresolved, tasks, appointments, documents, handovers, and what needs attention
+- An optional, private "How manageable has caregiving felt this week?" check-in with a supportive, non-clinical reply. Only you can see your own answers
+
+## 📝 Doctor Visit Brief (print or save as PDF)
+- From any appointment: a clean one-page brief with the patient overview, current medicines, recent changes, **self-reported** medicine activity, recent documents, family observations and a checklist of questions for the doctor
+- Family can add observations and questions; the page prints without menus, so "Save as PDF" gives a tidy handout. It is not a medical report and says so
 
 ## ♿ Accessibility
 - Large type, high contrast, text-size settings, read-aloud, keyboard and screen-reader support
@@ -68,8 +79,6 @@ Care Circle goes beyond a reminder app. It is a **care coordination system**: de
 - One-click demo as a caregiver, patient or family member, with made-up family data
 - Uses the real app, not a mock. Invitations and email are switched off in the demo
 
-## 🚧 Not built yet
-Voice assistant, AI document summaries, AI-written notification wording, push notifications, caregiver weekly report and check-in, doctor-visit brief with PDF export, translated interface (English only for now).
 
 ---
 
@@ -83,7 +92,7 @@ Voice assistant, AI document summaries, AI-written notification wording, push no
 | Track adherence | Self-reported taken / skipped / snoozed, weekly chart, documented formula |
 | Monitor upcoming appointments | Calendar, reminders, handover list |
 | **Proactive email reminders** for missed medications, upcoming doses, appointments | Idempotent scheduler with escalation, quiet hours and retries |
-| Go beyond a basic reminder app | AI scanner, reconciliation, assistant, tasks and handover |
+| Go beyond a basic reminder app | AI scanner, reconciliation, an assistant built into every page, tasks, handover, weekly report and a printable doctor brief |
 | Elderly person at the centre | Simple patient screen; the patient answers their own reminders; nothing is recorded without their confirmation |
 
 ---
@@ -153,7 +162,7 @@ Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests 
 - Brevo transactional email
 
 ### Quality
-- Vitest + Testing Library + axe: **294 tests in 31 files**
+- Vitest + Testing Library + axe: **343 tests in 36 files**
 - ESLint (with jsx-a11y), strict TypeScript
 
 ### Deployment
@@ -181,7 +190,7 @@ Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests 
 npm install
 cp .env.example .env.local      # fill it in (see below)
 npm run dev                     # http://localhost:3000
-npm test                        # 294 tests; needs no Firebase or AI key
+npm test                        # 343 tests; needs no Firebase or AI key
 npm run typecheck && npm run lint && npm run build
 ```
 

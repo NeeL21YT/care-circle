@@ -11,6 +11,7 @@ export type AuditAction =
   | "preferences.update"
   | "task.create" | "task.assign" | "task.status" | "task.note"
   | "handover.create" | "handover.share" | "handover.acknowledge" | "handover.delete"
+  | "checkin.save" | "brief.update"
   | "assistant.message" | "assistant.confirm" | "assistant.cancel" | "assistant.delete_conversation"
   | "prescription.reconcile" | "prescription.extract" | "prescription.edit" | "prescription.approve" | "prescription.reject";
 

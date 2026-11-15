@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { AdherenceChart } from "./adherence-chart";
 import { NextAppointmentCard, StatCard, TodaySchedule } from "./home-sections";
 import { STATUS_LABEL } from "@/lib/domain/dose-state";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 export function adherenceSentence(a: NonNullable<PatientSnapshot["adherence"]>): string {
   if (a.percentage === null) return "No doses have been due yet, so there is no adherence figure.";
@@ -31,6 +32,7 @@ export function CaregiverPatientHome({ snap, now, patientId, canWrite }: { snap:
       <header className="space-y-2">
         <h1 id="page-title" tabIndex={-1} className="text-3xl font-extrabold sm:text-4xl">{snap.patient.fullName}</h1>
         <p className="text-lg text-muted-foreground">{greeting(now, tz)}. Here is {fmtDate(now, tz)} at a glance.</p>
+        <div className="print-hide pt-1"><AskAssistant question="What needs my attention today?">What needs attention today?</AskAssistant></div>
       </header>
 
       {canWrite && (

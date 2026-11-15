@@ -2,32 +2,34 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Plus, Send, Trash2, User } from "lucide-react";
+import Link from "next/link";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { ReadAloud } from "@/components/a11y/read-aloud";
 import { SafeMarkdown } from "@/components/ui/safe-markdown";
 import { stripMarkdown } from "@/lib/markdown";
+import { ASSISTANT_PAGES, type AssistantLink, type AssistantPageKey } from "@/lib/ai/assistant/pages";
 import { useAnnounce } from "@/components/a11y/announcer";
 import { api, errorMessage } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
 
-export interface ChatMessage { id: string; role: "user" | "assistant"; content: string; pendingActionIds: string[]; errorStatus: string | null }
+export interface ChatMessage { id: string; role: "user" | "assistant"; content: string; pendingActionIds: string[]; errorStatus: string | null; links?: AssistantLink[] }
 export interface ChatPending { id: string; summary: string; status: string }
 export interface ChatConversation { id: string; title: string; updatedAt: string }
 interface ConversationPayload { conversation: { id: string }; messages: ChatMessage[]; pendingActions: ChatPending[] }
 
-const SUGGESTIONS = [
-  "What medicines do I need to take today?",
-  "When is my next medicine?",
-  "What is my next doctor appointment?",
-  "Did I report taking my morning medicine?",
-  "When did I last report skipping a dose?",
-];
-
-export function AssistantChat({ patientId, conversations, initial, canAct }: {
+export function AssistantChat({ patientId, conversations, initial, canAct, compact = false, page, question, onNavigate }: {
   patientId: string; conversations: ChatConversation[]; initial: ConversationPayload | null; canAct: boolean;
+  /** Side-panel mode: single column, no conversation list. */
+  compact?: boolean;
+  /** The app page the person is on, so "what is this?" makes sense. */
+  page?: AssistantPageKey;
+  /** A question handed over by a page ("Ask about these tasks"); it is sent as soon as it arrives. */
+  question?: { id: number; text: string } | null;
+  onNavigate?: () => void;
 }) {
+  const SUGGESTIONS = ASSISTANT_PAGES[page ?? "assistant"].suggestions;
   const router = useRouter();
   const announce = useAnnounce();
   const [cid, setCid] = useState<string | null>(initial?.conversation.id ?? null);
@@ -48,6 +50,16 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
     lastCount.current = messages.length;
   }, [messages, announce]);
 
+  // A question from a page button: send it once per request, as if typed.
+  const lastQuestion = useRef(0);
+  const sendRef = useRef<(m: string) => void>(() => undefined);
+  useEffect(() => {
+    if (question && question.id !== lastQuestion.current) {
+      lastQuestion.current = question.id;
+      sendRef.current(question.text);
+    }
+  }, [question]);
+
   function apply(p: ConversationPayload) {
     setCid(p.conversation.id);
     setMessages(p.messages);
@@ -62,8 +74,8 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
     setText("");
     setMessages((x) => [...x, { id: `tmp-${Date.now()}`, role: "user", content: m, pendingActionIds: [], errorStatus: null }]);
     try {
-      apply(await api<ConversationPayload>(`/api/patients/${patientId}/assistant/chat`, { body: { conversationId: cid ?? undefined, message: m } }));
-      router.refresh();
+      apply(await api<ConversationPayload>(`/api/patients/${patientId}/assistant/chat`, { body: { conversationId: cid ?? undefined, message: m, page } }));
+      if (!compact) router.refresh();
     } catch (e) {
       setError(errorMessage(e));
       setText(m);
@@ -73,6 +85,8 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
       inputRef.current?.focus();
     }
   }
+
+  sendRef.current = (m: string) => { void send(m); };
 
   async function decide(actionId: string, decision: "confirm" | "cancel") {
     if (!cid || busy) return;
@@ -102,15 +116,15 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
     setMessages([]);
     setPending([]);
     setError(null);
-    router.replace(`/patients/${patientId}/assistant`);
+    if (!compact) router.replace(`/patients/${patientId}/assistant`);
     inputRef.current?.focus();
   }
 
   const pendingById = new Map(pending.map((p) => [p.id, p]));
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside aria-label="Your conversations" className="space-y-2">
+    <div className={compact ? "space-y-4" : "grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]"}>
+      {!compact && <aside aria-label="Your conversations" className="space-y-2">
         <Button type="button" variant="outline" className="w-full" onClick={newChat}><Plus aria-hidden="true" /> New conversation</Button>
         <ul className="space-y-1">
           {conversations.map((c) => (
@@ -122,18 +136,24 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
             </li>
           ))}
         </ul>
-      </aside>
+      </aside>}
 
       <section aria-labelledby="chat-h" className="space-y-4">
         <h2 id="chat-h" className="sr-only">Conversation</h2>
-        <Alert variant="info" title="This helper uses AI and can make mistakes.">
-          It reads your Care Circle records. It cannot give medical advice, change a dose, or tell you to stop a medicine. Ask your doctor or pharmacist about those.
-        </Alert>
+        {compact ? (
+          <p className="rounded-xl border-2 border-info bg-info-bg p-3 text-sm"><strong>AI can make mistakes.</strong> It reads your Care Circle records. It cannot give medical advice or change a dose: ask your doctor or pharmacist.</p>
+        ) : (
+          <Alert variant="info" title="This helper uses AI and can make mistakes.">
+            It reads your Care Circle records. It cannot give medical advice, change a dose, or tell you to stop a medicine. Ask your doctor or pharmacist about those.
+          </Alert>
+        )}
 
-        <div ref={logRef} role="log" aria-label="Messages" aria-live="off" tabIndex={0} className="max-h-[55vh] min-h-48 space-y-4 overflow-y-auto rounded-xl border-2 p-4">
+        {compact && cid && <Button type="button" variant="outline" size="sm" onClick={newChat}><Plus aria-hidden="true" /> New conversation</Button>}
+
+        <div ref={logRef} role="log" aria-label="Messages" aria-live="off" tabIndex={0} className={cn("space-y-4 overflow-y-auto rounded-xl border-2 p-3 sm:p-4", compact ? "max-h-[48vh] min-h-40" : "max-h-[55vh] min-h-48")}>
           {messages.length === 0 && (
             <div className="space-y-3">
-              <p className="text-lg">Hello. What would you like to know?</p>
+              <p className={compact ? "text-base" : "text-lg"}>Hello. What would you like to know?</p>
               <ul className="flex flex-wrap gap-2" aria-label="Suggested questions">
                 {SUGGESTIONS.map((s) => (
                   <li key={s}><Button type="button" variant="outline" onClick={() => send(s)} disabled={busy}>{s}</Button></li>
@@ -143,9 +163,9 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
           )}
           {messages.map((m) => (
             <article key={m.id} aria-label={m.role === "user" ? "You said" : "Assistant said"} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")}>
-              <span aria-hidden="true" className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary [&_svg]:size-5">{m.role === "user" ? <User /> : <Bot />}</span>
-              <div className={cn("max-w-[85%] space-y-2 rounded-2xl border-2 px-4 py-3", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card")}>
-                <div className="text-lg">
+              <span aria-hidden="true" className={cn("mt-1 size-9 shrink-0 items-center justify-center rounded-full bg-secondary [&_svg]:size-5", compact ? "hidden" : "flex")}>{m.role === "user" ? <User /> : <Bot />}</span>
+              <div className={cn("space-y-2 rounded-2xl border-2 py-3", compact ? "min-w-0 max-w-full px-3" : "max-w-[85%] px-4", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card")}>
+                <div className={compact ? "text-base" : "text-lg"}>
                   <span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>
                   {m.role === "assistant" ? <SafeMarkdown text={m.content} /> : <p className="whitespace-pre-wrap">{m.content}</p>}
                 </div>
@@ -168,6 +188,11 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
                     </div>
                   );
                 })}
+                {(m.links?.length ?? 0) > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {m.links!.map((l) => <Link key={l.path} href={l.path} onClick={onNavigate} className={buttonVariants({ variant: "outline" })}>{l.label}</Link>)}
+                  </div>
+                )}
                 {m.errorStatus && <p className="text-sm">You can try your question again.</p>}
               </div>
             </article>

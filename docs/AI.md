@@ -1,6 +1,6 @@
 # AI design and safety
 
-AI is used for four things only: reading prescription images/PDFs into **drafts**, answering questions from a user's own records, rewording the handover facts, and (planned) other summaries. It is never used to decide who is notified, whether a dose was missed, whether something is urgent, or what is medically correct.
+AI is used for four things only: reading prescription images/PDFs into **drafts**, answering questions from a user's own records, and rewording the handover facts. It is never used to decide who is notified, whether a dose was missed, whether something is urgent, or what is medically correct.
 
 ## Providers and fallback
 
@@ -25,6 +25,13 @@ AI is used for four things only: reading prescription images/PDFs into **drafts*
 | No patient name or id is sent to a model | prompts use facts only |
 | Cost and abuse control | rate limits per endpoint, per-user daily quotas (`AI_DAILY_*`), token usage recorded without content |
 | Logs | provider status codes only; never prompts, documents or replies |
+
+## The assistant inside every page
+
+- A button on every patient page opens the same assistant (one conversation system, not a second chatbot). The browser sends only a **page key from a fixed list** (`src/lib/ai/assistant/pages.ts`), never free text, so the model is told "the user is looking at the Care tasks page" without any injection surface.
+- Extra read tools: care tasks, recent family activity, latest handover. All go through the same permissioned services, so a patient sees only their own tasks and a family member only what they were granted.
+- **Links:** the model can request `openPage` or `openDoctorBrief`. The server builds the URL from the fixed list, checks the person's permission (a patient cannot be sent to the scanner), and attaches a button. The model never writes a URL.
+- **Typed tool calls:** small models sometimes write a call as text, for example `[Open Care handover](command:default_api:openPage{page:handover})`, instead of calling the tool. `clean-reply.ts` turns such a typed `openPage` into the real, permission-checked button and removes all other markdown link syntax, so link targets from the model are never shown or followed. This was found by testing with a real model.
 
 ## Limitations
 

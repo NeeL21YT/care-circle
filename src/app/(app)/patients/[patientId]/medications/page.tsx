@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { MedicationActions } from "@/components/app/medication-actions";
 import { MedicationStatusChip } from "@/components/app/medication-status";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 export const metadata: Metadata = { title: "Medications" };
 
@@ -41,7 +42,7 @@ export default async function MedicationsPage({ params }: { params: Promise<{ pa
       <PageHeader
         title={mine ? "My medicines" : "Medications"}
         description={mine ? "Your medicines and when to take them, exactly as your care team entered them." : `Medicines and reminder schedules for ${patient.fullName}.`}
-        actions={addButton}
+        actions={<>{addButton}<AskAssistant question="Which of the medicines are due today and tonight?">Ask about medicines</AskAssistant></>}
       />
       {meds.length === 0 ? (
         <EmptyState icon={<Pill />} title="No medications yet" action={addButton || undefined}>

@@ -5,6 +5,8 @@ import { PROMPT_VERSIONS } from "../config";
 import { AiError } from "../errors";
 import { EMERGENCY_REPLY, isEmergencyText } from "./safety";
 import { systemInstructions } from "./system-instructions";
+import { cleanReply } from "./clean-reply";
+import { ASSISTANT_PAGES, type AssistantLink, type AssistantPageKey } from "./pages";
 import { runTool, toolDeclarations, type ProposedAction, type ToolContext } from "./tool-registry";
 
 export interface HistoryMessage {
@@ -14,6 +16,7 @@ export interface HistoryMessage {
 export interface AssistantReply {
   text: string;
   proposals: ProposedAction[];
+  links: AssistantLink[];
   toolsUsed: { name: string; ok: boolean }[];
   model: string | null;
   promptVersion: string;
@@ -31,18 +34,18 @@ export const MAX_HISTORY = 10;
  * and executes them with the user's identity, then returns results as data.
  */
 export async function runAssistantTurn(
-  ctx: Omit<ToolContext, "proposals">,
-  input: { role: string; language: string; history: HistoryMessage[]; message: string },
+  ctx: Omit<ToolContext, "proposals" | "links">,
+  input: { role: string; language: string; history: HistoryMessage[]; message: string; page?: AssistantPageKey },
 ): Promise<AssistantReply> {
-  const base = { proposals: [] as ProposedAction[], toolsUsed: [] as { name: string; ok: boolean }[], promptVersion: PROMPT_VERSIONS.assistant, inputTokens: 0, outputTokens: 0 };
+  const base = { proposals: [] as ProposedAction[], links: [] as AssistantLink[], toolsUsed: [] as { name: string; ok: boolean }[], promptVersion: PROMPT_VERSIONS.assistant, inputTokens: 0, outputTokens: 0 };
   // Deterministic pre-check: urgent wording is never routed through the model.
   if (isEmergencyText(input.message)) return { ...base, text: EMERGENCY_REPLY, model: null, emergency: true };
 
   const client = aiClient();
   if (!client.generateWithTools) throw new AiError("ai_unavailable");
-  const tctx: ToolContext = { ...ctx, proposals: base.proposals };
+  const tctx: ToolContext = { ...ctx, proposals: base.proposals, links: base.links };
   const nowLocal = DateTime.fromJSDate(ctx.now, { zone: ctx.timezone }).toFormat("cccc d LLLL yyyy, h:mm a");
-  const system = systemInstructions({ timezone: ctx.timezone, nowLocal, role: input.role.replace("_", " "), language: input.language });
+  const system = systemInstructions({ timezone: ctx.timezone, nowLocal, role: input.role.replace("_", " "), language: input.language, currentPage: input.page ? ASSISTANT_PAGES[input.page].label : null });
 
   const contents: ChatContent[] = [
     ...input.history.slice(-MAX_HISTORY).map((m): ChatContent => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] })),
@@ -57,7 +60,13 @@ export async function runAssistantTurn(
     base.inputTokens += turn.usage.inputTokens;
     base.outputTokens += turn.usage.outputTokens;
     if (!turn.calls.length) {
-      return { ...base, text: turn.text || "Sorry, I could not find an answer to that.", model, emergency: false };
+      // Repair replies where the model typed a tool call as text (see clean-reply.ts).
+      const cleaned = cleanReply(turn.text);
+      for (const page of cleaned.pages) {
+        const out = await runTool(tctx, "openPage", { page });
+        base.toolsUsed.push({ name: "openPage", ok: out.ok });
+      }
+      return { ...base, text: cleaned.text || "Sorry, I could not find an answer to that.", model, emergency: false };
     }
     contents.push(turn.content);
     const responses: unknown[] = [];

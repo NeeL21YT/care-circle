@@ -10,6 +10,7 @@ import { NextAppointmentCard, TodaySchedule } from "./home-sections";
 import { Alert } from "@/components/ui/alert";
 import { DoseStatusChip } from "@/components/ui/status";
 import { fmtTime } from "@/lib/format";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 /** Family sees only what the caregiver shared; hidden sections simply do not exist. */
 export function FamilyHome({ snap, now, patientId, notifications }: { snap: PatientSnapshot; now: Date; patientId: string; notifications: Pick<AppNotification, "id" | "title" | "body" | "createdAt" | "readAt">[] }) {
@@ -21,6 +22,7 @@ export function FamilyHome({ snap, now, patientId, notifications }: { snap: Pati
       <header className="space-y-2">
         <h1 id="page-title" tabIndex={-1} className="text-3xl font-extrabold sm:text-4xl">{snap.patient.fullName}</h1>
         <p className="text-lg text-muted-foreground">Shared with you by the care team · {fmtDate(now, tz)}</p>
+        <div className="print-hide pt-1"><AskAssistant question="What needs attention for the patient today?">What needs attention today?</AskAssistant></div>
       </header>
 
       {nothingShared && (

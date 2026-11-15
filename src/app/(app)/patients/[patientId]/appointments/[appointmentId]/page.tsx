@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { DateTime } from "luxon";
 import { requirePagePatient } from "@/lib/auth/page";
 import { listAppointments } from "@/lib/services/appointments";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { AppointmentForm } from "@/components/app/appointment-form";
 
@@ -16,7 +18,9 @@ export default async function Page({ params }: { params: Promise<{ patientId: st
   const local = DateTime.fromJSDate(appt.startsAt, { zone: patient.timezone });
   return (
     <>
-      <PageHeader title="Edit appointment" description={`With ${appt.doctorName} for ${patient.fullName}.`} />
+      <PageHeader title="Edit appointment" description={`With ${appt.doctorName} for ${patient.fullName}.`}
+        actions={<Link href={`/patients/${patientId}/appointments/${appointmentId}/brief`} className={buttonVariants({ variant: "outline" })}>Prepare doctor brief</Link>}
+      />
       <AppointmentForm
         patientId={patientId}
         initial={{

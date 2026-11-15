@@ -5,6 +5,7 @@ import { listActivity } from "@/lib/services/care-activity";
 import { listCircleMembers, listTasks } from "@/lib/services/care-tasks";
 import { PageHeader } from "@/components/ui/page-header";
 import { TasksBoard } from "@/components/app/tasks-board";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 export const metadata: Metadata = { title: "Care tasks" };
 
@@ -16,7 +17,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const [tasks, members, activity] = await Promise.all([listTasks(user, patientId, { filter }), listCircleMembers(user, patientId, "tasks"), listActivity(user, patientId, 15)]);
   return (
     <>
-      <PageHeader title={membership.role === "patient" ? "My tasks" : "Care tasks"} description={`Who is doing what for ${patient.fullName}. Everyone can see who is responsible and what is still open.`} />
+      <PageHeader title={membership.role === "patient" ? "My tasks" : "Care tasks"} description={`Who is doing what for ${patient.fullName}. Everyone can see who is responsible and what is still open.`} actions={<AskAssistant question="Which care tasks are open, overdue, or have nobody responsible?">Ask about these tasks</AskAssistant>} />
       <TasksBoard
         patientId={patientId}
         tasks={JSON.parse(JSON.stringify(tasks))}

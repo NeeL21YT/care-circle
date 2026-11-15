@@ -6,6 +6,7 @@ import type { CurrentUser } from "@/lib/auth/session";
 import { MAX_MESSAGE_CHARS } from "@/lib/ai/assistant/safety";
 import { runAssistantTurn, type HistoryMessage } from "@/lib/ai/assistant/assistant";
 import type { ProposedAction } from "@/lib/ai/assistant/tool-registry";
+import type { AssistantLink, AssistantPageKey } from "@/lib/ai/assistant/pages";
 import { consumeQuota, recordUsage } from "@/lib/ai/usage";
 import { fmtTime } from "@/lib/format";
 import { audit } from "./audit";
@@ -29,6 +30,8 @@ export interface AiMessage {
   /** Tool NAMES and outcomes only. Results are not stored (they duplicate health data). */
   toolCalls: { name: string; ok: boolean }[];
   pendingActionIds: string[];
+  /** Buttons that open app pages (built by the server from a fixed list). */
+  links?: AssistantLink[];
   modelIdentifier: string | null;
   promptVersion: string | null;
   errorStatus: string | null;
@@ -96,7 +99,7 @@ async function addMessage(patientId: string, cid: string, m: Omit<AiMessage, "id
   return ref.id;
 }
 
-export async function sendMessage(user: CurrentUser, patientId: string, input: { conversationId?: string; message: string }) {
+export async function sendMessage(user: CurrentUser, patientId: string, input: { conversationId?: string; message: string; page?: AssistantPageKey }) {
   const { patient, membership } = await requirePatientAccess(user.uid, patientId, "patient:read");
   const text = input.message.trim();
   if (!text) throw badRequest("Type a question first.");
@@ -123,7 +126,7 @@ export async function sendMessage(user: CurrentUser, patientId: string, input: {
   try {
     const reply = await runAssistantTurn(
       { user, patientId, timezone: patient.timezone, now: new Date() },
-      { role: membership.role, language: patient.preferredLanguage, history, message: text },
+      { role: membership.role, language: patient.preferredLanguage, history, message: text, page: input.page },
     );
     await recordUsage(patientId, user.uid, { inputTokens: reply.inputTokens, outputTokens: reply.outputTokens });
     const pendingIds: string[] = [];
@@ -134,7 +137,7 @@ export async function sendMessage(user: CurrentUser, patientId: string, input: {
       await ref.set(toData(a));
       pendingIds.push(ref.id);
     }
-    await addMessage(patientId, cid, { role: "assistant", content: reply.text, toolCalls: reply.toolsUsed, pendingActionIds: pendingIds, modelIdentifier: reply.model, promptVersion: reply.promptVersion, errorStatus: null });
+    await addMessage(patientId, cid, { role: "assistant", content: reply.text, toolCalls: reply.toolsUsed, pendingActionIds: pendingIds, links: reply.links, modelIdentifier: reply.model, promptVersion: reply.promptVersion, errorStatus: null });
   } catch (e) {
     await recordUsage(patientId, user.uid, null);
     const code = (e as { code?: string }).code ?? "internal";

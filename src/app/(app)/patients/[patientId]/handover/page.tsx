@@ -4,6 +4,7 @@ import { can } from "@/lib/domain/permissions";
 import { listHandovers } from "@/lib/services/handovers";
 import { PageHeader } from "@/components/ui/page-header";
 import { HandoverList } from "@/components/app/handover-list";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 export const metadata: Metadata = { title: "Care handover" };
 
@@ -14,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ patientId: st
   const rows = list.map((h) => ({ id: h.id, status: h.status, createdByName: h.createdByName, createdAt: h.createdAt.toISOString(), recipientName: h.recipientName, acknowledgedAt: h.acknowledgedAt?.toISOString() ?? null, periodHours: h.periodHours, mine: h.createdByUid === user.uid, forMe: h.recipientUid === user.uid }));
   return (
     <>
-      <PageHeader title="Care handover" description={`Pass on what ${patient.fullName}'s next caregiver needs to know, from real records.`} />
+      <PageHeader title="Care handover" description={`Pass on what ${patient.fullName}'s next caregiver needs to know, from real records.`} actions={<AskAssistant question="What is in the latest handover, and what still needs attention?">Ask about the handover</AskAssistant>} />
       <HandoverList patientId={patientId} rows={rows} canPrepare={can(membership, "handovers:write")} timezone={patient.timezone} />
     </>
   );

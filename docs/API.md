@@ -113,3 +113,14 @@ All require a session and patient access; permissions are enforced per action as
 | `GET /activity-feed` | coordination activity | members with task access |
 | `GET/POST /handovers`, `GET/PATCH/DELETE /handovers/{id}` | list / prepare a draft / read / edit note / delete draft | prepare: manage care |
 | `POST /handovers/{id}/refresh`, `/share`, `/acknowledge` | rebuild from latest records / share with one authorized member / acknowledge | author / author / recipient |
+
+## Weekly report, check-in, doctor brief (under `/api/patients/{patientId}`)
+
+| Method and path | Purpose | Who |
+| --- | --- | --- |
+| `GET /weekly-report` | the last 7 days in plain words, from real records (no AI); sections you cannot see are listed as omitted | caregivers who manage care (`tasks:write`) |
+| `GET/POST /checkins` | your own weekly wellbeing check-ins (one per ISO week; saving again updates it). Private: nobody else can read them | same |
+| `GET /appointments/{appointmentId}/brief` | the doctor brief for one appointment, with sections gated by what you may see | anyone who can see appointments |
+| `POST /appointments/{appointmentId}/brief` | add/toggle/remove a question, add/remove an observation (`action` field) | manage care; an observation can be removed by its author or a primary caregiver |
+
+`POST /assistant/chat` also accepts an optional `page` (one of a fixed list of page keys) so the assistant knows which screen the person is on. Replies may include `links` (buttons built by the server).

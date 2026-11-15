@@ -54,3 +54,5 @@ Under `patients/{patientId}/`:
 - `medications/{id}/versions/{n}`: now also stores `changeSource` (e.g. which prescription and who confirmed it).
 - `careTasks/{id}`, `careActivity/{id}` (append-only, ordered by `seq`), `careHandovers/{id}` (items with source ids, summary, status, recipient, acknowledgement).
 - `aiConversations/{id}` with `messages` and `pendingActions` subcollections (private to the author); `aiUsage/{uid_day}` (counts and token totals only).
+- `caregiverCheckins/{uid_isoWeek}`: one wellbeing check-in per person per week (level and optional note). Read only by its author.
+- `doctorBriefs/{appointmentId}`: the family's questions for the doctor and observations for one appointment. The brief itself is built live from other records and is not stored.

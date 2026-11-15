@@ -5,17 +5,21 @@ import { col, fromSnap } from "@/lib/db";
 import { HttpError, notFound } from "@/lib/api/errors";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
-import { ForbiddenError } from "@/lib/domain/permissions";
+import { can, ForbiddenError } from "@/lib/domain/permissions";
 import { InvalidTransitionError, nextStatus, SNOOZE_OPTIONS_MINUTES, STATUS_LABEL } from "@/lib/domain/dose-state";
 import { describeSchedule } from "@/lib/domain/schedule-text";
 import type { DoseOccurrence } from "@/lib/domain/types";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
+import { listActivity } from "@/lib/services/care-activity";
+import { listTasks } from "@/lib/services/care-tasks";
+import { getHandover, listHandovers } from "@/lib/services/handovers";
 import { listAppointments } from "@/lib/services/appointments";
 import { listDocuments } from "@/lib/services/documents";
 import { listDoses } from "@/lib/services/doses";
 import { getMedication, listMedications } from "@/lib/services/medications";
 import { getPreferences } from "@/lib/services/preferences";
 import { toModelSchema, type ToolDeclaration } from "../client";
+import { ASSISTANT_PAGES, ASSISTANT_PAGE_KEYS, pagePath, type AssistantLink } from "./pages";
 
 /**
  * Application tools the model may REQUEST. The backend validates every call.
@@ -41,6 +45,8 @@ export interface ToolContext {
   timezone: string;
   now: Date;
   proposals: ProposedAction[];
+  /** Buttons to show under the reply. Built by the server from a fixed page list, never from model text. */
+  links: AssistantLink[];
 }
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD.");
@@ -162,6 +168,71 @@ export const TOOLS = [
     async run(ctx) {
       const p = await getPreferences(ctx.user, ctx.patientId);
       return { email: p.email, quietHours: p.quietHours };
+    },
+  }),
+  tool({
+    name: "getCareTasks",
+    description: "Shared care tasks: who is responsible, due dates, status. filter is open (default), mine, unassigned or all.",
+    schema: z.object({ filter: z.enum(["open", "mine", "unassigned", "all"]).optional() }),
+    async run(ctx, a) {
+      const tasks = (await listTasks(ctx.user, ctx.patientId, { filter: a.filter ?? "open" })).slice(0, 30);
+      return {
+        count: tasks.length,
+        tasks: tasks.map((t) => ({
+          taskId: t.id, title: t.title, status: t.status.replace("_", " "), responsible: t.assignedToName ?? "Nobody yet",
+          due: t.dueAt ? fmtDateTime(t.dueAt, ctx.timezone) : null,
+          overdue: t.dueAt !== null && t.dueAt < ctx.now && ["pending", "accepted", "in_progress", "needs_attention"].includes(t.status),
+          priority: t.priority,
+        })),
+      };
+    },
+  }),
+  tool({
+    name: "getRecentCareActivity",
+    description: "What family members recently did in the app about tasks and handovers (who did what, when). Latest 15.",
+    schema: z.object({}),
+    async run(ctx) {
+      const events = await listActivity(ctx.user, ctx.patientId, 15);
+      return events.map((e) => ({ when: fmtDateTime(e.at, ctx.timezone), what: e.summary }));
+    },
+  }),
+  tool({
+    name: "getLatestHandover",
+    description: "The most recent care handover this person may see: who wrote it, to whom, whether it was acknowledged, its summary and what needs attention.",
+    schema: z.object({}),
+    async run(ctx) {
+      const list = await listHandovers(ctx.user, ctx.patientId);
+      if (!list.length) return { found: false, note: "There are no handovers yet." };
+      const h = await getHandover(ctx.user, ctx.patientId, list[0].id);
+      return {
+        found: true, from: h.createdByName, created: fmtDateTime(h.createdAt, ctx.timezone), status: h.status, to: h.recipientName,
+        acknowledged: Boolean(h.acknowledgedAt), coversLastHours: h.periodHours,
+        summary: h.summaryLines.slice(0, 12).map((l) => l.text), needsAttention: h.items.filter((i) => i.attention).slice(0, 8).map((i) => i.text),
+        authorsNote: h.note || null,
+      };
+    },
+  }),
+  tool({
+    name: "openPage",
+    description: `Show the user a button that opens a page of the app. page is one of: ${ASSISTANT_PAGE_KEYS.join(", ")}. Use it whenever you explain where to do something. Never write URLs yourself.`,
+    schema: z.object({ page: z.enum(ASSISTANT_PAGE_KEYS) }),
+    async run(ctx, a) {
+      const { membership } = await requirePatientAccess(ctx.user.uid, ctx.patientId, "patient:read");
+      const page = ASSISTANT_PAGES[a.page];
+      if (!can(membership, page.requires)) throw new ForbiddenError("This person cannot open that page.");
+      if (!ctx.links.some((l) => l.label === `Open ${page.label}`)) ctx.links.push({ label: `Open ${page.label}`, path: pagePath(ctx.patientId, a.page) });
+      return { status: "button_shown", label: page.label };
+    },
+  }),
+  tool({
+    name: "openDoctorBrief",
+    description: "Show a button that opens the printable doctor-visit brief for one appointment (use the appointmentId from getUpcomingAppointments).",
+    schema: z.object({ appointmentId: id }),
+    async run(ctx, a) {
+      const appt = (await listAppointments(ctx.user, ctx.patientId, { scope: "all" })).find((r) => r.id === a.appointmentId);
+      if (!appt) throw notFound("That appointment");
+      ctx.links.push({ label: `Open doctor brief for ${fmtDateTime(appt.startsAt, ctx.timezone)}`, path: `/patients/${ctx.patientId}/appointments/${appt.id}/brief` });
+      return { status: "button_shown" };
     },
   }),
   tool({

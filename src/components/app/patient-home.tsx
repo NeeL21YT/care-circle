@@ -4,6 +4,7 @@ import type { PatientSnapshot } from "@/lib/services/dashboards";
 import { firstName, fmtDate, fmtTime, greeting, relativeDay } from "@/lib/format";
 import { DoseCard } from "./dose-card";
 import { NextAppointmentCard, QuickLinks, TodaySchedule, toDoseView } from "./home-sections";
+import { AskAssistant } from "@/components/app/assistant-provider";
 
 /** The simplest screen in the app: one next action, a short list, big links. */
 export function PatientHome({ snap, now, patientId }: { snap: PatientSnapshot; now: Date; patientId: string }) {
@@ -31,6 +32,7 @@ export function PatientHome({ snap, now, patientId }: { snap: PatientSnapshot; n
       <header>
         <h1 id="page-title" tabIndex={-1} className="text-4xl font-extrabold sm:text-5xl">{greeting(now, tz)}, {name}</h1>
         <p className="mt-2 text-xl text-muted-foreground"><time dateTime={now.toISOString()}>{fmtDate(now, tz)}</time></p>
+        <div className="print-hide pt-1"><AskAssistant question="What medicines do I still need to answer today?">Ask about my day</AskAssistant></div>
         <p className="mt-3 text-2xl font-semibold" role="status">{status}</p>
         <div className="mt-4"><ReadAloud text={spoken} label="Read my day aloud" /></div>
       </header>

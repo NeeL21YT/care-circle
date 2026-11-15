@@ -44,6 +44,11 @@ function AppointmentCard({ a, timezone, isPast, emphasize, canWrite, patientId }
         {a.location && <div><dt className="inline font-semibold"><MapPin aria-hidden="true" className="mr-1 inline size-4" />Location: </dt><dd className="inline">{a.location}</dd></div>}
       </dl>
       {a.notes && <p className="mt-3 whitespace-pre-line text-base text-muted-foreground"><span className="font-semibold text-foreground">Notes: </span>{a.notes}</p>}
+      {a.status !== "cancelled" && (
+        <p className="mt-3">
+          <Link href={`/patients/${patientId}/appointments/${a.id}/brief`} className={buttonVariants({ variant: "outline" })}>Doctor brief<span className="sr-only"> for the visit with {a.doctorName}</span></Link>
+        </p>
+      )}
       {canWrite && (
         <div className="mt-4">
           <AppointmentActions patientId={patientId} appointmentId={a.id} doctorName={a.doctorName} status={a.status} reminderOffsetsMinutes={a.reminderOffsetsMinutes} editHref={`/patients/${patientId}/appointments/${a.id}`} />

@@ -96,6 +96,8 @@ service cloud.firestore {
       match /careHandovers/{id} { allow read, write: if false; }
       match /prescriptionExtractions/{id} { allow read, write: if false; }
       match /prescriptionReconciliations/{id} { allow read, write: if false; }
+      match /caregiverCheckins/{id} { allow read, write: if false; }
+      match /doctorBriefs/{id} { allow read, write: if false; }
       match /aiUsage/{id} { allow read, write: if false; }
       match /aiConversations/{id} {
         allow read, write: if false;
