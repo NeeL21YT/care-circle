@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Volume2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FAILURE_MESSAGE, speak, speechSupported, stopSpeaking } from "@/lib/client/speech";
+import { failureMessage, speak, speechSupported, stopSpeaking } from "@/lib/client/speech";
 import { useDisplaySettings } from "./display-settings";
 import { useAnnounce } from "./announcer";
 
@@ -34,8 +34,8 @@ export function ReadAloud({ text, label = "Read this aloud" }: { text: string; l
       onEnd: () => setSpeaking(false),
       onError: (why, detail) => {
         setSpeaking(false);
-        setProblem(`${FAILURE_MESSAGE[why]}${detail ? ` (Details: ${detail}.)` : ""}`);
-        announce(FAILURE_MESSAGE[why], "assertive");
+        setProblem(`${failureMessage(why)}${detail ? ` (Details: ${detail}.)` : ""}`);
+        announce(failureMessage(why), "assertive");
       },
     });
   }

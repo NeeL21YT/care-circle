@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { chunkText, FAILURE_MESSAGE, getVoicesAsync, heldUtterances, pickVoice, speak, stopSpeaking } from "@/lib/client/speech";
+import { chunkText, failureMessage, FAILURE_MESSAGE, getVoicesAsync, heldUtterances, pickVoice, speak, stopSpeaking } from "@/lib/client/speech";
 
 type Handler = ((e?: unknown) => void) | null;
 class FakeUtterance { text: string; rate = 1; lang = ""; voice: unknown = null; onstart: Handler = null; onend: Handler = null; onerror: Handler = null; constructor(t: string) { this.text = t; } }
@@ -155,5 +155,18 @@ describe("chunking", () => {
     expect(parts.every((p) => p.length <= 100)).toBe(true);
     expect(parts.join("").replace(/\s/g, "")).toBe(long.replace(/\s/g, ""));
     expect(chunkText("   ")).toEqual([]);
+  });
+});
+
+describe("the message matches the likely cause", () => {
+  it("explains the privacy setting in Firefox-family browsers, and the voice install steps elsewhere", () => {
+    const ua = vi.spyOn(window.navigator, "userAgent", "get");
+    ua.mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:160.0) Gecko/20100101 Firefox/160.0"); // Floorp reports Firefox
+    expect(failureMessage("no_voice")).toMatch(/resistFingerprinting/);
+    expect(failureMessage("no_voice")).not.toMatch(/Add voices/);
+    expect(failureMessage("blocked")).toBe(FAILURE_MESSAGE.blocked);
+    ua.mockReturnValue("Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/130 Safari/537.36");
+    expect(failureMessage("no_voice")).toMatch(/Add voices/);
+    ua.mockRestore();
   });
 });

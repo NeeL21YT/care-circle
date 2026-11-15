@@ -27,6 +27,17 @@ export const FAILURE_MESSAGE: Record<SpeakFailure, string> = {
   failed: "Reading aloud did not start. You can try again, or use your screen reader.",
 };
 
+/** Firefox and its forks (Floorp, LibreWolf, Zen...) all report "Firefox/" in the user agent. */
+export const isGecko = () => typeof navigator !== "undefined" && /Firefox\//.test(navigator.userAgent);
+
+const GECKO_NO_VOICE =
+  "Your browser is hiding this device's voices. In Firefox and Floorp that happens when fingerprinting protection is on (about:config, privacy.resistFingerprinting). Turn it off, or add an exception for this site, then reload this page. You can also use your screen reader.";
+
+/** The message to show. Firefox-family browsers get the privacy-setting explanation, because that is the usual cause there. */
+export function failureMessage(why: SpeakFailure): string {
+  return why === "no_voice" && isGecko() ? GECKO_NO_VOICE : FAILURE_MESSAGE[why];
+}
+
 export function speechSupported(): boolean {
   return typeof window !== "undefined" && "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 }

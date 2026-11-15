@@ -162,7 +162,7 @@ Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests 
 - Brevo transactional email
 
 ### Quality
-- Vitest + Testing Library + axe: **354 tests in 37 files**
+- Vitest + Testing Library + axe: **355 tests in 37 files**
 - ESLint (with jsx-a11y), strict TypeScript
 
 ### Deployment
@@ -190,7 +190,7 @@ Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests 
 npm install
 cp .env.example .env.local      # fill it in (see below)
 npm run dev                     # http://localhost:3000
-npm test                        # 354 tests; needs no Firebase or AI key
+npm test                        # 355 tests; needs no Firebase or AI key
 npm run typecheck && npm run lint && npm run build
 ```
 
