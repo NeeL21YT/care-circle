@@ -346,7 +346,7 @@ export function PrescriptionReview({ patientId, extractionId, status, meds, warn
                   <Field id={id("times")} label="Reminder times" hint="24-hour clock, separated by commas. Example: 08:00, 20:00" required error={e.times ?? e.schedule}>{(p) => <Input {...p} value={d.times} onChange={(x) => set(i, "times", x.target.value)} />}</Field>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field id={id("startDate")} label="Start date" required error={e.startDate}>{(p) => <Input {...p} type="date" value={d.startDate} onChange={(x) => set(i, "startDate", x.target.value)} />}</Field>
-                    <Field id={id("endDate")} label={`End date (optional)${flag("duration")}`} error={e.endDate}>{(p) => <Input {...p} type="date" value={d.endDate} onChange={(x) => set(i, "endDate", x.target.value)} />}</Field>
+                    <Field id={id("endDate")} label={`End date${flag("duration")}`} error={e.endDate}>{(p) => <Input {...p} type="date" value={d.endDate} onChange={(x) => set(i, "endDate", x.target.value)} />}</Field>
                   </div>
                   <Field id={id("instructions")} label="Special instructions" error={e.instructions}>{(p) => <Textarea {...p} rows={2} value={d.instructions} onChange={(x) => set(i, "instructions", x.target.value)} />}</Field>
                 </fieldset>

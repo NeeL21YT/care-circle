@@ -87,7 +87,7 @@ export function HandoverView({ patientId, h, recipients, timezone, isAuthor, isR
         <section aria-labelledby="share-h" className="space-y-4 rounded-xl border-2 p-4">
           <h2 id="share-h" className="text-xl font-bold">Review and share</h2>
           <p>This draft is private to you until you share it.</p>
-          <Field id="ho-note" label="Add your own note (optional)" hint="For things only you know. It is shown separately from the generated summary.">
+          <Field id="ho-note" label="Add your own note" hint="For things only you know. It is shown separately from the generated summary.">
             {(p) => <Textarea {...p} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />}
           </Field>
           <div className="flex flex-wrap gap-2">

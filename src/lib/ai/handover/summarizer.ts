@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { aiClient } from "../client";
 import { PROMPT_VERSIONS } from "../config";
+import { stripMarkdown } from "@/lib/markdown";
 import { templateSummary, type HandoverItem, type SummaryLine } from "@/lib/domain/handover";
 
 const outputSchema = z.object({
@@ -73,9 +74,9 @@ export function isGrounded(line: SummaryLine, byId: Map<string, HandoverItem>): 
  * every item that needs attention is covered, falling back to its own factual
  * text if the AI skipped it. If the AI is unavailable the template is used.
  */
-export async function summarizeHandover(items: HandoverItem[]): Promise<HandoverSummary> {
+export async function summarizeHandover(items: HandoverItem[], opts: { ai?: boolean } = {}): Promise<HandoverSummary> {
   const fallback: HandoverSummary = { lines: templateSummary(items), source: "template", model: null, promptVersion: null };
-  if (!items.length) return fallback;
+  if (!items.length || opts.ai === false) return fallback;
   try {
     const { data, usage, model } = await aiClient().generateJson({
       task: "text",
@@ -85,7 +86,7 @@ export async function summarizeHandover(items: HandoverItem[]): Promise<Handover
     });
     void usage;
     const byId = new Map(items.map((i) => [i.id, i]));
-    const good = data.lines.filter((l) => isGrounded(l, byId));
+    const good = data.lines.map((l) => ({ ...l, text: stripMarkdown(l.text) })).filter((l) => isGrounded(l, byId));
     if (!good.length) return fallback;
     const covered = new Set(good.flatMap((l) => l.refs));
     const missing = items.filter((i) => i.attention && !covered.has(i.id));

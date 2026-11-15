@@ -26,6 +26,12 @@ One family, one shared care plan: everyone can see what needs attention, who is 
 | More accessible and reliable | Large type, high contrast, read-aloud, keyboard and screen-reader support; idempotent jobs with retries; works with no AI key |
 | Elderly person at the centre | Simple patient screen; the patient answers their own reminders; the patient sees only documents shared with them; the assistant asks for their confirmation before recording anything; every AI suggestion needs a human's approval |
 
+### Try it without signing up (demo mode)
+
+When `DEMO_MODE=true`, the landing page shows a **"Just looking? Try the demo"** box with three buttons: caregiver (daughter), patient (simple view) and family member (son). Each opens the real app, signed in as that person, with made-up data for a fictional patient: three medicines with several days of reported history (including a skipped dose and an open reminder), an upcoming appointment, three care tasks (one overdue and unassigned), and a handover already shared from the caregiver to the family member. A banner on every screen says it is a demo and lets you switch role. Download the **sample prescription** from the banner and scan it to see the AI review and the reconciliation (one medicine matches the list, one has a different strength, one is new).
+
+It is not a mock. It uses real Firebase accounts, real Firestore data and every normal code path. What is different: the three accounts have no password and can only be entered through the demo button, the data is synthetic, and inviting people is switched off so the demo can never send email. Because demo visitors share one set of data, anything they change is visible to the next visitor, and AI features use small daily quotas. Set `DEMO_MODE=false` for real use. The first ever visit seeds the data (about 2.5 minutes), so open the live site once yourself before sharing it; after that it takes about a second.
+
 ### Why it matters
 
 In many households an older person's care is shared between several people: one handles morning medicines, another checks in at night, another books doctors. Information gets lost between them. Nobody is sure whether a reminder was ignored, a dose was reported, a prescription changed, or who was supposed to call the clinic.
@@ -122,7 +128,8 @@ npm run typecheck && npm run lint && npm run build
    - `GEMINI_API_KEY`. Leave the `GEMINI_*_MODEL` variables empty to auto-pick from the models your key can use, or give an ordered list `model-a,model-b`.
    - `OPENROUTER_API_KEY` plus `OPENROUTER_TEXT_MODEL` and `OPENROUTER_VISION_MODEL`, and/or `OPENCODE_API_KEY` plus `OPENCODE_TEXT_MODEL`. Run `node --env-file=.env.local scripts/check-providers.mjs` to list available models.
    - `AI_PROVIDER` sets the order (default `gemini,openrouter,opencode`). Without any AI key the whole app still works; only the AI features say they are not set up.
-5. `CRON_SECRET`: a random string of at least 16 characters, used to authorize the scheduler.
+5. `DEMO_MODE=true` to enable the demo buttons (see section 1).
+6. `CRON_SECRET`: a random string of at least 16 characters, used to authorize the scheduler.
 
 All variables are documented in `.env.example`. Never commit `.env.local`.
 

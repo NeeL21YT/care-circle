@@ -63,6 +63,7 @@ export function PrescriptionScanner({ patientId, scans, aiReady }: { patientId: 
         <Button type="submit" disabled={busy !== null || !aiReady}>
           {busy === "upload" ? "Uploading…" : busy === "scan" ? "Reading the prescription…" : "Upload and read it"}
         </Button>
+        <p className="text-base">No prescription handy? <a href="/sample-prescription.png" download className="font-semibold underline">Download a sample prescription</a> (made up) and scan it to see the review and comparison.</p>
         <p className="text-sm text-muted-foreground">The AI only suggests details. You check every one, and nothing is added to the medicine list until you approve it.</p>
       </form>
       <section aria-labelledby="hist-h" className="space-y-3">

@@ -149,9 +149,9 @@
     box-shadow: 0 0 0 2px var(--surface);
   }
   :focus:not(:focus-visible) { outline: none; }
-  /* Programmatic focus targets (headings, regions) get no ring on click. */
-  [tabindex="-1"]:focus { outline: none; box-shadow: none; }
-  [tabindex="-1"]:focus-visible { outline: 3px solid var(--ring); outline-offset: 4px; }
+  /* Programmatic focus targets (page headings, regions) are not interactive, so they get no ring.
+     Screen readers still announce them; every control keeps its visible focus ring above. */
+  [tabindex="-1"]:focus, [tabindex="-1"]:focus-visible { outline: none; box-shadow: none; }
 
   /* Minimum 24x24 CSS px target size (WCAG 2.5.8); controls override to 48px. */
   button, [role="button"], a, input, select, textarea, summary { min-height: 1.5rem; }

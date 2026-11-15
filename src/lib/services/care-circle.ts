@@ -9,6 +9,7 @@ import type { CurrentUser } from "@/lib/auth/session";
 import { audit } from "./audit";
 import { sendInvitationEmail } from "@/lib/email/send";
 import { serverEnv } from "@/lib/env";
+import { isDemoUid } from "@/lib/demo";
 
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -46,6 +47,8 @@ export async function createInvitation(
   input: { email: string; role: Role; permissions?: Partial<SharePermissions> },
 ) {
   const { patient, membership } = await requirePatientAccess(user.uid, patientId, "members:invite");
+  // The demo is public: inviting would send real emails to arbitrary addresses.
+  if (isDemoUid(user.uid)) throw new ForbiddenError("Inviting people is switched off in the demo, because it would send real emails.");
   if (!invitableRoles(membership.role).includes(input.role)) {
     throw new ForbiddenError("You cannot invite someone with that role.");
   }

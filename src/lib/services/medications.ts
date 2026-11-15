@@ -6,6 +6,7 @@ import type { DoseOccurrence, Medication, MedicationStatus, Patient } from "@/li
 import type { MedicationInput } from "@/lib/domain/schemas";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
+import { mapLimit } from "@/lib/async";
 import { audit } from "./audit";
 import { applySystemEvent, doseText } from "./doses";
 
@@ -175,16 +176,16 @@ export async function reconcileOccurrences(patient: Patient, med: Medication, no
   const existing = new Map(existingSnap.docs.map((d) => [d.id, fromData<DoseOccurrence>(d.data())]));
 
   // Create missing.
-  for (const slot of desired) {
-    if (existing.has(slot.id)) continue;
+  // Concurrent (not one-by-one): a twice-daily medicine is ~28 documents, and each is its own round trip.
+  await mapLimit(desired.filter((slot) => !existing.has(slot.id)), 12, async (slot) => {
     try {
       await col.sub(patient.id, "doseOccurrences").doc(slot.id).create(toData(occurrenceDoc(patient, med, slot, now)));
     } catch (e) {
       if (!isAlreadyExists(e)) throw e;
     }
-  }
+  });
   // Cancel or refresh existing future ones.
-  for (const [id, occ] of existing) {
+  await mapLimit([...existing], 8, async ([id, occ]) => {
     const untouched = occ.status === "scheduled" || occ.status === "notified" || occ.status === "snoozed";
     if (!desiredIds.has(id) && untouched) {
       await applySystemEvent(patient.id, id, "cancelled", now);
@@ -199,5 +200,5 @@ export async function reconcileOccurrences(patient: Patient, med: Medication, no
         medicationName: med.name, doseText: doseText(med), instructions: med.instructions, updatedAt: now,
       });
     }
-  }
+  });
 }

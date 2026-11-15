@@ -6,6 +6,8 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { ReadAloud } from "@/components/a11y/read-aloud";
+import { SafeMarkdown } from "@/components/ui/safe-markdown";
+import { stripMarkdown } from "@/lib/markdown";
 import { useAnnounce } from "@/components/a11y/announcer";
 import { api, errorMessage } from "@/lib/client/api";
 import { cn } from "@/lib/utils";
@@ -42,7 +44,7 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
     const last = messages.at(-1);
-    if (messages.length > lastCount.current && last?.role === "assistant") announce(`Assistant says: ${last.content}`, "polite");
+    if (messages.length > lastCount.current && last?.role === "assistant") announce(`Assistant says: ${stripMarkdown(last.content)}`, "polite");
     lastCount.current = messages.length;
   }, [messages, announce]);
 
@@ -143,8 +145,11 @@ export function AssistantChat({ patientId, conversations, initial, canAct }: {
             <article key={m.id} aria-label={m.role === "user" ? "You said" : "Assistant said"} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")}>
               <span aria-hidden="true" className="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary [&_svg]:size-5">{m.role === "user" ? <User /> : <Bot />}</span>
               <div className={cn("max-w-[85%] space-y-2 rounded-2xl border-2 px-4 py-3", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-card")}>
-                <p className="whitespace-pre-wrap text-lg"><span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>{m.content}</p>
-                {m.role === "assistant" && !m.id.startsWith("tmp-") && <ReadAloud text={m.content} label="Read this reply aloud" />}
+                <div className="text-lg">
+                  <span className="sr-only">{m.role === "user" ? "You: " : "Assistant: "}</span>
+                  {m.role === "assistant" ? <SafeMarkdown text={m.content} /> : <p className="whitespace-pre-wrap">{m.content}</p>}
+                </div>
+                {m.role === "assistant" && !m.id.startsWith("tmp-") && <ReadAloud text={stripMarkdown(m.content)} label="Read this reply aloud" />}
                 {m.pendingActionIds.map((id) => {
                   const a = pendingById.get(id);
                   if (!a) return null;

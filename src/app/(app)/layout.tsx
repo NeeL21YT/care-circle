@@ -2,6 +2,8 @@ import Link from "next/link";
 import { HeartHandshake, Settings } from "lucide-react";
 import { requirePageUser } from "@/lib/auth/page";
 import { SignOutButton } from "@/components/app/sign-out-button";
+import { DemoBanner } from "@/components/app/demo-banner";
+import { demoRoleOf, isDemoUid } from "@/lib/demo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePageUser();
@@ -21,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </nav>
         </div>
       </header>
+      {isDemoUid(user.uid) && <DemoBanner current={demoRoleOf(user.uid)} />}
       {children}
     </div>
   );

@@ -71,7 +71,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     return await resolveUser(await adminAuth().verifySessionCookie(cookie, true));
   } catch (e) {
     // Log the Firebase error CODE only (never the token) so misconfiguration is diagnosable.
-    console.error("[auth] session verification failed:", (e as { code?: string })?.code ?? (e instanceof Error ? e.name : "unknown"));
+    console.error("[auth] session verification failed:", (e as { code?: string })?.code ?? "no-code", e instanceof Error ? e.message.slice(0, 200) : "");
     return null;
   }
 });

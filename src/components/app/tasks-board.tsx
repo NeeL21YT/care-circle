@@ -80,7 +80,7 @@ export function TasksBoard({ patientId, tasks, members, activity, currentUid, ca
         <form onSubmit={create} className="space-y-3 rounded-xl border-2 p-4" aria-labelledby="new-task-h">
           <h2 id="new-task-h" className="text-xl font-bold">Add a task</h2>
           <Field id="nt-title" label="What needs doing?" required error={fieldErrors.title}>{(p) => <Input {...p} value={form.title} maxLength={140} onChange={(e) => setForm({ ...form, title: e.target.value })} />}</Field>
-          <Field id="nt-desc" label="More detail (optional)" error={fieldErrors.description}>{(p) => <Textarea {...p} rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />}</Field>
+          <Field id="nt-desc" label="More detail" error={fieldErrors.description}>{(p) => <Textarea {...p} rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />}</Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id="nt-who" label="Who is responsible?" error={fieldErrors.assignedToUid}>{(p) => (
               <Select {...p} value={form.assignedToUid} onChange={(e) => setForm({ ...form, assignedToUid: e.target.value })}>
@@ -91,8 +91,8 @@ export function TasksBoard({ patientId, tasks, members, activity, currentUid, ca
             <Field id="nt-pri" label="How important?">{(p) => (
               <Select {...p} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></Select>
             )}</Field>
-            <Field id="nt-date" label="Due date (optional)" error={fieldErrors.dueDate}>{(p) => <Input {...p} type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />}</Field>
-            <Field id="nt-time" label="Due time (optional)" hint="Without a time it is due at the end of that day." error={fieldErrors.dueTime}>{(p) => <Input {...p} type="time" value={form.dueTime} onChange={(e) => setForm({ ...form, dueTime: e.target.value })} />}</Field>
+            <Field id="nt-date" label="Due date" error={fieldErrors.dueDate}>{(p) => <Input {...p} type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />}</Field>
+            <Field id="nt-time" label="Due time" hint="Without a time it is due at the end of that day." error={fieldErrors.dueTime}>{(p) => <Input {...p} type="time" value={form.dueTime} onChange={(e) => setForm({ ...form, dueTime: e.target.value })} />}</Field>
           </div>
           <Button type="submit" disabled={busy === "create" || !form.title.trim()}>{busy === "create" ? "Adding…" : "Add task"}</Button>
         </form>

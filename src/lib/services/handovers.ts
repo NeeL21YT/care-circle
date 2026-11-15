@@ -103,17 +103,18 @@ async function gather(user: CurrentUser, patientId: string, periodHours: number)
   return { patient, membership, now, periodStart, ...built, lastActivity };
 }
 
-async function summarize(patientId: string, user: CurrentUser, items: HandoverItem[]) {
+async function summarize(patientId: string, user: CurrentUser, items: HandoverItem[], useAi: boolean) {
+  if (!useAi) return summarizeHandover(items, { ai: false });
   await consumeQuota(patientId, user.uid, "handover");
   return summarizeHandover(items);
 }
 
 /** Creates a private draft from real records. Replaces the author's earlier unshared draft. */
-export async function prepareHandover(user: CurrentUser, patientId: string, opts: { periodHours?: number } = {}) {
+export async function prepareHandover(user: CurrentUser, patientId: string, opts: { periodHours?: number; useAi?: boolean } = {}) {
   const periodHours = opts.periodHours ?? 24;
   if (!(PERIOD_OPTIONS_HOURS as readonly number[]).includes(periodHours)) throw badRequest("Choose 8, 12, 24, 48 or 72 hours.");
   const g = await gather(user, patientId, periodHours);
-  const summary = await summarize(patientId, user, g.items);
+  const summary = await summarize(patientId, user, g.items, opts.useAi ?? true);
 
   const old = await handovers(patientId).where("createdByUid", "==", user.uid).get();
   for (const d of old.docs) if ((d.data() as { status?: string }).status === "draft") await d.ref.delete();

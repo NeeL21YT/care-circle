@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarPlus, FileUp, Pill, UserPlus } from "lucide-react";
+import { ArrowRightLeft, CalendarPlus, FileUp, Pill, ScanLine, UserPlus } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { DoseStatusChip } from "@/components/ui/status";
@@ -23,7 +23,7 @@ export function CaregiverPatientHome({ snap, now, patientId, canWrite }: { snap:
   const live = today.filter((d) => d.status !== "cancelled");
   const taken = live.filter((d) => d.status === "reported_taken").length;
   const link = (href: string, icon: React.ReactNode, text: string) => (
-    <Link href={href} className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>{icon}{text}</Link>
+    <Link href={href} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full justify-start")}>{icon}{text}</Link>
   );
 
   return (
@@ -34,10 +34,12 @@ export function CaregiverPatientHome({ snap, now, patientId, canWrite }: { snap:
       </header>
 
       {canWrite && (
-        <nav aria-label="Quick actions" className="flex flex-wrap gap-3">
+        <nav aria-label="Quick actions" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {link(`${base}/medications/new`, <Pill aria-hidden="true" />, "Add medication")}
           {link(`${base}/appointments/new`, <CalendarPlus aria-hidden="true" />, "Add appointment")}
+          {link(`${base}/scanner`, <ScanLine aria-hidden="true" />, "Scan a prescription")}
           {link(`${base}/documents`, <FileUp aria-hidden="true" />, "Upload document")}
+          {link(`${base}/handover`, <ArrowRightLeft aria-hidden="true" />, "Prepare a handover")}
           {link(`${base}/care-circle`, <UserPlus aria-hidden="true" />, "Invite family member")}
         </nav>
       )}

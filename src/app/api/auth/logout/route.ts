@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { route } from "@/lib/api/handler";
 import { SESSION_COOKIE } from "@/lib/env";
 import { adminAuth } from "@/lib/firebase/admin";
+import { isDemoUid } from "@/lib/demo";
 
 export const POST = route({ auth: "none" }, async () => {
   const jar = await cookies();
@@ -10,8 +11,9 @@ export const POST = route({ auth: "none" }, async () => {
   if (value) {
     try {
       const claims = await adminAuth().verifySessionCookie(value);
-      // Invalidate this session everywhere it might be copied.
-      await adminAuth().revokeRefreshTokens(claims.uid);
+      // Invalidate this session everywhere it might be copied. NOT for the shared demo accounts:
+      // revoking would sign out every other visitor who is using the same demo person.
+      if (!isDemoUid(claims.uid)) await adminAuth().revokeRefreshTokens(claims.uid);
     } catch {
       /* already invalid: fine */
     }

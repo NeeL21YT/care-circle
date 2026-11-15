@@ -26,7 +26,14 @@ export function adminDb(): Firestore {
   if (firestoreOverride) return firestoreOverride;
   if (!firestoreInstance) {
     firestoreInstance = getFirestore(adminApp());
-    firestoreInstance.settings({ ignoreUndefinedProperties: true });
+    try {
+      // FIRESTORE_TRANSPORT=rest avoids gRPC connection stalls seen on some home/office networks (useful for local
+    // development). On Vercel the default (gRPC) is fine and slightly faster.
+    firestoreInstance.settings({ ignoreUndefinedProperties: true, ...(process.env.FIRESTORE_TRANSPORT === "rest" ? { preferRest: true } : {}) });
+    } catch {
+      // After a hot reload (dev) or a warm serverless instance the shared Firestore client was already
+      // configured by an earlier module instance. That is fine: the setting is already in place.
+    }
   }
   return firestoreInstance;
 }
