@@ -1,182 +1,261 @@
-# Care Circle
+# 🤝 Care Circle
 
-**An AI-assisted, accessibility-first care coordination platform for older adults and the family who look after them.**
+> **One family. One shared care plan. Everyone knows what needs attention.**
 
-One family, one shared care plan: everyone can see what needs attention, who is responsible, and what the patient has reported. Care Circle never gives medical advice, never diagnoses and never changes a medicine on its own. People decide; software keeps them informed.
+Care Circle is an AI-assisted, accessibility-first care coordination platform for older adults and the family who look after them. It was built for the **PromptWars × Catalyst hackathon** (MnM) for the challenge **Elderly Care & Medication Management Platform**.
 
-- **Live demo:** https://care-circle-tan.vercel.app (use the **Try the demo** buttons on the home page; no sign-up needed)
-- **Stack:** Next.js 16 (App Router, strict TypeScript), Tailwind CSS 4, Base UI primitives, Zod, Firebase Auth + Firestore (Admin SDK on the server), Supabase Storage (private bucket), Brevo email, Gemini / OpenRouter / OpenCode for AI, Luxon, Vitest.
-- **More docs:** [API](docs/API.md) · [Firestore schema](docs/FIRESTORE_SCHEMA.md) · [AI design and safety](docs/AI.md) · [Accessibility and manual test script](docs/ACCESSIBILITY.md)
+🌐 **Live demo:** https://care-circle-tan.vercel.app — press **Try the demo** on the home page. No sign-up needed.
+💻 **Source:** https://github.com/NeeL21YT/care-circle
+
+> Care Circle never gives medical advice, never diagnoses and never changes a medicine on its own. People decide; the software keeps everyone informed.
+
+## 📖 About
+
+In many households an older person's care is shared: one family member handles the morning medicines, another checks in at night, another books the doctor. Information gets lost between them. Nobody is sure whether a reminder was ignored, a dose was reported, a prescription changed, or who was supposed to call the clinic.
+
+Care Circle puts the elderly person, their caretakers and their family on one shared, secure care plan. It sends proactive email reminders, makes responsibilities visible, and uses AI only where it helps, always with a person approving the result.
 
 ---
 
-## 1. Problem statement and how this answers it
+# ✨ Features
 
-**Challenge:** *Elderly Care & Medication Management Platform* — a shared ecosystem where elderly people, caretakers and family manage medications, appointments and routines, with proactive email reminders, going beyond a basic reminder app and keeping the elderly person at the centre of their own healthcare decisions.
+Care Circle goes beyond a reminder app. It is a **care coordination system**: deterministic code decides *when* and *who*, AI helps people *read and understand*, and humans approve every consequential change.
 
-| Requirement in the brief | What is built |
+## 💊 Medicines & Adherence
+- Daily, weekly and every-N-days schedules, correct across daylight-saving changes
+- Patient reports **taken / skipped / remind me later / not sure**. Always labelled a *self-report*, never verified
+- Weekly adherence chart with a text summary and data table
+- Full version history of every medicine
+
+## 📧 Smart Email Reminders
+- Upcoming-dose, due, follow-up and **missed-dose caregiver escalation** emails, plus appointment reminders
+- Quiet hours, per-person preferences, retries and delivery status
+- **Idempotent**: the scheduler can run twice and nothing is sent twice
+
+## 👪 Shared Care Circle
+- Three roles: **patient**, **primary caregiver**, **family member**
+- Family sees only what they are granted (medicines, adherence, appointments, documents, tasks)
+- Single-use invitation codes bound to the invited, email-verified person; access can be revoked at any time
+
+## 📅 Appointments & 📄 Documents
+- Calendar view with reminders
+- Private documents in a locked bucket, opened only through 5-minute signed links
+
+## 🧾 AI Prescription Scanner
+- Photo or PDF in, **structured draft** out (Gemini, with OpenRouter and OpenCode as fallbacks)
+- Original beside editable fields; low-confidence and missing values are highlighted
+- **Nothing becomes active until a caregiver approves it**
+
+## 🔁 Prescription Reconciliation
+- Compares a new prescription with the current list: brand vs generic, strength, dose, how often, dates
+- Shows *possible* differences side by side. A person decides each one: update, keep, new medicine, ask the doctor, or reject
+- Every change is saved in the medicine's history with its source
+
+## 🤖 Care Assistant
+- Chat that answers from the signed-in person's own records using backend-run tools
+- Cannot change anything by itself: it can only *propose*, and a person presses **Confirm**
+- Refuses dose and clinical questions; urgent wording gets a fixed "contact emergency services" reply
+
+## ✅ Care Tasks & 🔄 Care Handover
+- Assign, accept, hand over and complete tasks, with a visible activity history
+- **Handover**: a summary of what happened, built from real records, reviewed by its author, shared with one person and acknowledged. Unresolved items stay unresolved
+
+## ♿ Accessibility
+- Large type, high contrast, text-size settings, read-aloud, keyboard and screen-reader support
+- A simple "My day" screen for the patient; responsive from 320 px phones to desktop
+
+## 🎮 Demo Mode
+- One-click demo as a caregiver, patient or family member, with made-up family data
+- Uses the real app, not a mock. Invitations and email are switched off in the demo
+
+## 🚧 Not built yet
+Voice assistant, AI document summaries, AI-written notification wording, push notifications, caregiver weekly report and check-in, doctor-visit brief with PDF export, translated interface (English only for now).
+
+---
+
+# 🎯 How It Answers the Challenge
+
+| Requirement | What is built |
 | --- | --- |
-| Elderly person, caretaker and family share one healthcare profile | Per-patient **care circle** with three roles (patient, primary caregiver, family) and per-category sharing |
-| "Secure, passcode-based access" | Access is by personal sign-in plus **single-use invitation codes** (hashed, 7-day expiry, bound to the invited, email-verified person) and an optional **on-device PIN lock** for shared tablets/phones. We deliberately did not use one shared family passcode: it cannot be audited or revoked per person, whereas each person's access here can be revoked and is logged |
-| Authorized members view, add, edit and manage medication schedules | Medicines with daily / weekly / every-N-days schedules, version history, statuses; family sharing is explicit and read-only |
-| Track adherence | Patient-reported taken / skipped / snoozed / not sure, with a documented adherence formula, weekly chart and text/table alternatives. Always a **self-report**, never verified |
-| Monitor upcoming doctor appointments | Appointments with a calendar view, reminders and a handover list |
-| Proactive **email** reminders: missed medications, upcoming doses, appointments | Idempotent scheduler: upcoming-dose, due, follow-up and **caregiver escalation for missed doses**, plus appointment reminders; quiet hours, preferences, retries, delivery status recorded |
-| Go beyond a basic reminder app | AI prescription scanner with human approval, prescription **reconciliation**, a grounded care assistant, shared care tasks, and shift-style **care handover** |
-| More accessible and reliable | Large type, high contrast, read-aloud, keyboard and screen-reader support; idempotent jobs with retries; works with no AI key |
-| Elderly person at the centre | Simple patient screen; the patient answers their own reminders; the patient sees only documents shared with them; the assistant asks for their confirmation before recording anything; every AI suggestion needs a human's approval |
+| Shared ecosystem for elderly person, caretakers and family | Per-patient **care circle** with roles and per-category sharing |
+| **Secure, passcode-based access** | Personal sign-in plus **single-use invitation codes** (hashed, 7-day expiry, bound to one verified email) and an optional on-device **PIN lock**. A shared family passcode was rejected on purpose: it cannot be audited or revoked per person |
+| View, add, edit, manage medication schedules | Medicines with flexible schedules and history; family access is read-only |
+| Track adherence | Self-reported taken / skipped / snoozed, weekly chart, documented formula |
+| Monitor upcoming appointments | Calendar, reminders, handover list |
+| **Proactive email reminders** for missed medications, upcoming doses, appointments | Idempotent scheduler with escalation, quiet hours and retries |
+| Go beyond a basic reminder app | AI scanner, reconciliation, assistant, tasks and handover |
+| Elderly person at the centre | Simple patient screen; the patient answers their own reminders; nothing is recorded without their confirmation |
 
-### Try it without signing up (demo mode)
+---
 
-When `DEMO_MODE=true`, the landing page shows a **"Just looking? Try the demo"** box with three buttons: caregiver (daughter), patient (simple view) and family member (son). Each opens the real app, signed in as that person, with made-up data for a fictional patient: three medicines with several days of reported history (including a skipped dose and an open reminder), an upcoming appointment, three care tasks (one overdue and unassigned), and a handover already shared from the caregiver to the family member. A banner on every screen says it is a demo and lets you switch role. Download the **sample prescription** from the banner and scan it to see the AI review and the reconciliation (one medicine matches the list, one has a different strength, one is new).
+# 🧠 Approach & Logic
 
-It is not a mock. It uses real Firebase accounts, real Firestore data and every normal code path. What is different: the three accounts have no password and can only be entered through the demo button, the data is synthetic, and inviting people is switched off so the demo can never send email. Because demo visitors share one set of data, anything they change is visible to the next visitor, and AI features use small daily quotas. Set `DEMO_MODE=false` for real use. The first ever visit seeds the data (about 2.5 minutes), so open the live site once yourself before sharing it; after that it takes about a second.
-
-### Why it matters
-
-In many households an older person's care is shared between several people: one handles morning medicines, another checks in at night, another books doctors. Information gets lost between them. Nobody is sure whether a reminder was ignored, a dose was reported, a prescription changed, or who was supposed to call the clinic.
-
-Care Circle makes that shared picture explicit and safe:
-
-| Problem | How Care Circle answers it |
-| --- | --- |
-| Medicine reminders get ignored | Reminders escalate on rules the family sets (patient first, then caregivers), with quiet hours and no duplicate sends |
-| "Did Mum take it?" | Patients report taken / skipped / not sure. It is always labelled a **self-report**, never verified |
-| Paper prescriptions are hard to digitise and easy to mis-enter | Photo or PDF goes to AI, which only produces a **draft** that a caregiver checks field by field |
-| New prescription vs what is already on the list | **Reconciliation** shows possible differences side by side and a person decides each one |
-| Responsibilities live in people's heads | **Care tasks** with owner, due date, hand-over and a visible activity history |
-| Shift changes lose context | **Care handover**: a summary built from real records, reviewed, shared and acknowledged |
-| Older users struggle with complex apps | Large type, high contrast, simple screens, keyboard and screen-reader support, read-aloud |
-
-## 2. How it works (approach and logic)
-
-### Principles that drive the design
-
-1. **Software only, no hardware.** Nothing infers that a medicine was swallowed. "Reported taken" is a self-report everywhere it appears.
-2. **Deterministic code decides, AI only explains.** Doses due, who gets notified and when, what is overdue, what is unresolved and who may see what are all plain, tested code. AI is used for reading documents, answering questions and rewording summaries, and each use is fenced in.
-3. **Humans approve every consequential change.** AI output is a draft. A scanned medicine becomes active only after a caregiver edits and approves it. The assistant can only *propose* an action; a person presses Confirm.
-4. **One authorization choke point.** Every patient-scoped read or write goes through `requirePatientAccess(uid, patientId, action)`. A non-member gets 404 (so ids cannot be enumerated), a member without permission gets 403. The patient id always comes from the verified URL and the caller's own membership, never from request bodies or from an AI model.
-5. **Least information.** Roles (patient, primary caregiver, family) plus per-category family sharing (medicines, adherence, appointments, documents, tasks, "can manage care"). Family never edits medicines.
-
-### Architecture
+1. **No hardware, no guessing.** Nothing infers that a medicine was swallowed.
+2. **Deterministic code decides, AI only explains.** Doses due, who is notified and when, what is overdue and who may see what are plain, tested code.
+3. **Humans approve every consequential change.** AI output is always a draft.
+4. **One authorization choke point.** Every patient-scoped read or write goes through `requirePatientAccess(uid, patientId, action)`. Non-members get 404 so ids cannot be enumerated. The patient id comes from the verified URL, never from a request body or an AI model.
+5. **Least information.** AI prompts carry no patient name or id, and documents are treated as untrusted data.
 
 ```
-Browser (React, server components)
-   │  httpOnly session cookie (Firebase session cookie, verified on every request)
-   ▼
-Next.js route handlers  ──►  route() wrapper: origin check, auth, rate limit, Zod validation, uniform errors
-   ▼
-Services (src/lib/services)  ──►  requirePatientAccess()  ──►  Firestore (Admin SDK only; rules deny all client access)
-   │                                   │
-   │                                   └─ pure domain logic (src/lib/domain): scheduling, dose state machine,
-   │                                      adherence, escalation, permissions, handover, reconciliation
-   ├─ AI layer (src/lib/ai): provider chain with fallback, structured output, tool registry, usage quotas
-   ├─ Storage (Supabase, private bucket, 5-minute signed URLs)
-   └─ Email (Brevo) + scheduled job (POST /api/jobs/tick, idempotent)
+Browser ── session cookie ──► Next.js route handlers (origin check, auth, rate limit, Zod validation)
+                                   │
+                                   ▼
+                  Services ──► requirePatientAccess() ──► Firestore (server only; rules deny all client access)
+                     │
+                     ├─ Domain logic: scheduling, dose state machine, escalation, permissions, handover, reconciliation
+                     ├─ AI layer: provider chain with fallback, structured output, tools, per-user quotas
+                     ├─ Storage: Supabase (private bucket, signed URLs)
+                     └─ Email: Brevo + scheduled job (POST /api/jobs/tick)
 ```
 
-### Medication reminders and escalation
-- Doses are materialised as occurrences (DST-correct, 14-day rolling window) with a status state machine: scheduled, notified, acknowledged, reported taken / skipped, snoozed, missed by policy, unknown, cancelled.
-- A scheduled tick evaluates each unresolved dose against the patient's escalation policy and creates notifications with **deterministic ids**, so running the tick twice sends nothing twice. Email delivery uses lease-based claiming and retries, and respects quiet hours and each person's preferences.
-- Adherence = reported taken / due non-cancelled doses, and is null when nothing was due. The definition is shown in the UI.
+Details: [AI design and safety](docs/AI.md) · [API](docs/API.md) · [Firestore schema](docs/FIRESTORE_SCHEMA.md) · [Accessibility and manual test script](docs/ACCESSIBILITY.md)
 
-### AI prescription scanner and reconciliation
-1. A caregiver uploads a photo or PDF (type checked by magic bytes, 4 MB limit, private storage).
-2. Gemini (or a fallback provider) returns **structured JSON** validated by Zod. Fields it cannot read stay `null`; confidence is shown but treated as a model estimate. Text in the document is untrusted: instructions inside it are ignored and flagged.
-3. The review screen shows the original beside editable fields, with low-confidence and missing values highlighted.
-4. **Reconciliation** compares each medicine with the current list (brand vs generic, strength units, times per day) and shows *possible* differences. Each item needs an explicit decision: update existing, keep as is, separate new medicine, ask the doctor (optionally creates a task), or reject. A look-alike duplicate cannot be added until it is confirmed as separate. Applied changes go through the normal medication service, with version history tagged with the prescription they came from.
-5. A medicine missing from the new prescription is shown as "could mean unchanged, left off or stopped. Only the doctor can say". It is never stopped automatically.
+---
 
-### Care assistant
-A chat helper that answers from the signed-in user's own records through backend-run tools (medicine list, schedule, dose history, appointments, documents, preferences). The model can only *request* a tool; the server validates and runs it with the user's identity, so role and sharing rules apply automatically. It never receives the patient's name or id. Urgent wording ("chest pain") gets a fixed emergency message without calling a model. Dose changes and clinical questions are refused in favour of "ask your doctor or pharmacist". See [docs/AI.md](docs/AI.md).
+# 🎨 Design Language
 
-### Care tasks and handover
-- **Tasks:** assign, accept, start, flag, complete, hand over, take over unassigned work, add notes. Who may do what is enforced server-side, and every change is written to an activity feed with the actor's name (including "completed on behalf of the assignee").
-- **Handover:** the code collects what the author is allowed to see: unresolved, snoozed and skipped doses, doses *reported* taken, overdue tasks, upcoming appointments, prescriptions awaiting review, new documents, care-plan changes. Each statement carries the permission needed to read it. AI may reword these facts, but a line is dropped if it cites an unknown item, invents a number, resolves something unresolved, loses the "reported" wording, or says "urgent" or "verified". Anything needing attention is always kept in its original wording. If AI is unavailable, the plain factual list is used. The author reviews the draft, shares it with one person who is allowed to see all of it, and that person acknowledges it. Access is re-checked on every read.
+**Calm Clarity × Large & Legible**
 
-## 3. Assumptions
+### Color Palette
 
-- Patients and caregivers each have their own accounts (email/password or Google). Families agree who is the primary caregiver.
-- Times are shown and scheduled in the patient's timezone (default India Standard Time in the demo data).
-- Email is acceptable for reminders in this version. Emails contain the medicine name, so treat it as a demo channel.
-- The AI provider keys are the operator's. Free-tier models may be slow or rate limited, so the app falls back across models and providers.
-- Demo data is **synthetic**. This is not a certified medical device and makes no compliance claims.
-- A person with no caregiver cannot self-manage their medicines (they are caregiver-managed by design).
+| Color | Hex | Use |
+|--------|------|------|
+| Care Teal | `#0B6B63` | Primary actions, brand |
+| Mist | `#F5F8F7` | Page background |
+| Deep Ink | `#14282A` | Text |
+| Sage | `#E3EFEC` | Cards, highlights |
+| Amber | `#FFF1D6` | Warnings, demo banner |
+| Info Blue | `#0B4F8A` | Information |
+| Alert Red | `#B3261E` | Destructive actions |
 
-## 4. What is built and what is not
+Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests (not a full manual audit). Status is never shown by color alone: every status has an icon and text.
 
-**Built and tested:** authentication and roles; care circle with invitations and sharing; medications and DST-correct dose scheduling; self-reported adherence; appointments; private documents; escalating, idempotent email and in-app notifications; patient, caregiver and family dashboards; AI prescription scanner; reconciliation; care assistant with confirm-to-act; care tasks and activity feed; care handover; accessibility features.
+---
 
-**Not built yet (do not rely on these):** real-time voice assistant, AI document summaries and classification, AI-written notification wording, push notifications (FCM), caregiver weekly summaries and check-in, doctor-visit brief with PDF export, translated UI (English only; preferred language is stored), offline mode.
+# 🛠 Tech Stack
 
-## 5. Quick start
+### Frontend
+- Next.js 16 (App Router, Server Components)
+- React 19
+- TypeScript (strict)
+- Tailwind CSS 4, Base UI primitives
+- React Hook Form + Zod, Recharts
+
+### Backend
+- Firebase Authentication (httpOnly session cookie)
+- Cloud Firestore via the Admin SDK (rules deny all client access)
+- Supabase Storage (private bucket, signed URLs)
+- Next.js Route Handlers
+
+### AI & APIs
+- Google Gemini via `@google/genai` (model discovery and fallback chain, structured output, function calling)
+- OpenRouter and OpenCode (OpenAI-compatible fallbacks)
+- Brevo transactional email
+
+### Quality
+- Vitest + Testing Library + axe: **294 tests in 31 files**
+- ESLint (with jsx-a11y), strict TypeScript
+
+### Deployment
+- Vercel (functions in `iad1`, next to the database)
+- GitHub Actions timer for reminders
+
+---
+
+# 📌 Assumptions & Limitations
+
+- Each person has their own account; families agree who the primary caregiver is.
+- Times follow the patient's timezone. Demo data is **synthetic**.
+- Email is used for reminders and contains the medicine name, so treat it as a demo channel.
+- Patients cannot add or edit their own medicines (caregiver-managed by design).
+- Rate limiting is in memory per server instance. Uploads are limited to 4 MB.
+- Reminder timing is as fine as the scheduler (5 minutes on the free GitHub Actions timer).
+- Screen-reader behavior was checked with axe and keyboard tests, not with real NVDA, JAWS or VoiceOver sessions. A manual script is in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
+- DPDP, ABDM and FHIR compliance are **not** implemented or claimed.
+
+---
+
+# 🚀 Getting Started
 
 ```bash
 npm install
-cp .env.example .env.local      # fill it in (sections 6 and 7)
+cp .env.example .env.local      # fill it in (see below)
 npm run dev                     # http://localhost:3000
-npm test                        # 294 tests; no Firebase or AI key needed
+npm test                        # 294 tests; needs no Firebase or AI key
 npm run typecheck && npm run lint && npm run build
 ```
 
-## 6. Services to set up
+<details>
+<summary><b>Set up the services</b></summary>
 
-1. **Firebase** (Authentication + Firestore): create a project, enable Email/Password (and Google if wanted), create Firestore, add a Web app (`NEXT_PUBLIC_FIREBASE_*`) and a service account (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, keeping the `\n` escapes). Deploy rules and indexes: `firebase deploy --only firestore:rules,firestore:indexes`. Add your domain under Authentication > Authorized domains.
-2. **Supabase Storage** (files): set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (server only). The private bucket is created on first upload.
-3. **Brevo** (email): `BREVO_API_KEY`, a verified sender in `EMAIL_FROM_ADDRESS`. Without it the app still works and records deliveries as skipped.
-4. **AI (optional, one or more):**
-   - `GEMINI_API_KEY`. Leave the `GEMINI_*_MODEL` variables empty to auto-pick from the models your key can use, or give an ordered list `model-a,model-b`.
-   - `OPENROUTER_API_KEY` plus `OPENROUTER_TEXT_MODEL` and `OPENROUTER_VISION_MODEL`, and/or `OPENCODE_API_KEY` plus `OPENCODE_TEXT_MODEL`. Run `node --env-file=.env.local scripts/check-providers.mjs` to list available models.
-   - `AI_PROVIDER` sets the order (default `gemini,openrouter,opencode`). Without any AI key the whole app still works; only the AI features say they are not set up.
-5. `DEMO_MODE=true` to enable the demo buttons (see section 1).
-6. `CRON_SECRET`: a random string of at least 16 characters, used to authorize the scheduler.
+1. **Firebase** (Authentication + Firestore): create a project, enable Email/Password (and Google if wanted), create Firestore, add a Web app (`NEXT_PUBLIC_FIREBASE_*`) and a service account (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, keeping the `\n` escapes). Deploy rules and indexes with `firebase deploy --only firestore:rules,firestore:indexes`. Add your domain under Authentication > Authorized domains.
+2. **Supabase Storage**: set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (server only). The private bucket is created on first upload.
+3. **Brevo**: `BREVO_API_KEY` and a verified sender in `EMAIL_FROM_ADDRESS`. Without it the app still works and records deliveries as skipped.
+4. **AI (optional)**: `GEMINI_API_KEY`. Leave the `GEMINI_*_MODEL` variables empty to auto-pick models, or give an ordered list `model-a,model-b`. Optionally `OPENROUTER_*` and `OPENCODE_*` (run `node --env-file=.env.local scripts/check-providers.mjs` to list models). `AI_PROVIDER` sets the order. Without any key the rest of the app still works.
+5. **`CRON_SECRET`**: a random string of 16+ characters that authorizes the scheduler.
+6. **`DEMO_MODE=true`** enables the demo buttons.
 
-All variables are documented in `.env.example`. Never commit `.env.local`.
+Every variable is documented in `.env.example`. Never commit `.env.local`.
 
-## 7. Deploy
+</details>
 
-1. Import the repository in **Vercel** (Next.js, default build settings) and add every variable from `.env.example`. Set `APP_URL` to the production URL.
+<details>
+<summary><b>Deploy to Vercel</b></summary>
+
+1. Import the repository in Vercel and add every variable from `.env.example`. Set `APP_URL` to the production URL.
 2. Add the Vercel domain to Firebase Authentication > Authorized domains.
-3. **Scheduler:** reminders need something to call `POST /api/jobs/tick` with `Authorization: Bearer $CRON_SECRET`. Vercel's free plan only allows daily crons, so this repo ships a free GitHub Actions workflow (`.github/workflows/tick.yml`) that calls it every 5 minutes. In the GitHub repository settings > Secrets and variables > Actions, add `APP_URL` (for example `https://your-app.vercel.app`) and `CRON_SECRET` (same value as in Vercel). Alternatives: the Cloud Function in `functions/` (needs the Firebase Blaze plan) or any external pinger.
-4. **Deployment notes (learned the hard way):** `vercel.json` runs the functions in `iad1`, next to the Firestore database (`nam5`), which makes pages several times faster than a far-away region. `package.json` has an npm `overrides` entry pinning `jwks-rsa` 3: Vercel's runtime does not allow `require()` of ES modules, and `firebase-admin` 14 otherwise pulls an ES-only `jose` that crashes every request with `ERR_REQUIRE_ESM`. Do not remove it unless `firebase-admin` stops needing it. Set `DEMO_MODE=true` for the demo buttons.
-5. Register two test accounts, create a patient, and walk through [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md#manual-test-script).
+3. **Scheduler:** add the repository secrets `APP_URL` and `CRON_SECRET` in GitHub. The workflow in `.github/workflows/tick.yml` then calls `POST /api/jobs/tick` every 5 minutes. (Vercel's free plan only allows daily crons.)
+4. **Deployment notes:** `vercel.json` runs functions in `iad1`, next to the Firestore database (`nam5`), which makes pages several times faster than a distant region. `package.json` pins `jwks-rsa` 3 through npm `overrides`, because Vercel's runtime does not allow `require()` of ES modules and `firebase-admin` 14 otherwise crashes every request with `ERR_REQUIRE_ESM`. Do not remove it unless `firebase-admin` stops needing it.
+5. Open the live site once yourself before sharing it: the first ever visit seeds the demo data.
 
-## 8. Testing
+</details>
 
-`npm test` runs **294 tests in 31 files**:
+<details>
+<summary><b>The demo, in detail</b></summary>
 
-- **Domain:** scheduling including DST, dose state machine, adherence maths, escalation and quiet hours, permissions, handover builder, reconciliation matching and comparison.
-- **Services** (against an in-memory Firestore double): cross-patient isolation, role and sharing rules, invitations, medication and dose lifecycle, notification idempotency and retries, documents, the prescription scanner, the assistant (tools, confirmation, injection, quotas), tasks, handovers, reconciliation, AI provider fallback.
-- **API wrapper and UI:** auth, origin check, validation, rate limits; accessibility (axe, keyboard, accessible names, live regions, focus).
-- AI behaviour is tested with scripted fake models. In addition, the scanner and assistant were run against **real Gemini** and OpenRouter with synthetic data during development. OpenCode is implemented and unit-tested, but its free quota was exhausted during testing, so it has not been confirmed against the live service.
+The demo accounts are real Firebase accounts with **no password**, reachable only through the demo button. The data is synthetic: a fictional patient with three medicines and several days of reported history (including a skipped dose and an open reminder), an upcoming appointment, three care tasks (one overdue and unassigned) and a handover already shared from the caregiver to the family member. Inviting people is switched off, so the demo can never send email. Visitors share one set of data. Set `DEMO_MODE=false` for real use. A sample prescription to scan can be downloaded from the demo banner: one medicine matches the list, one has a different strength and one is new.
 
-Honest limits: the Firestore double is not Firestore, so security rules and indexes are verified by deploying them, not by emulator tests; and screen-reader behaviour was checked with axe and keyboard tests, not with real NVDA, JAWS or VoiceOver sessions. Use the manual script in [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
+</details>
 
-## 9. Security
+---
 
-Server-side authorization on every endpoint; Firestore rules deny all client writes and expose only what a browser might need; AI, tasks, handovers and audit data are server-only; Zod validation on every input; same-origin check on mutations; rate limits (including AI endpoints) and per-user daily AI quotas; audit log of sensitive actions; private documents served only through short-lived signed URLs; magic-byte file checks; security headers; errors never include patient data; AI keys never reach the browser; AI sees no patient name or id and treats documents as untrusted data.
+# 🧪 Testing
 
-## 10. Known limitations
+`npm test` covers:
+- **Domain logic:** scheduling including daylight saving, the dose state machine, adherence maths, escalation and quiet hours, permissions, the handover builder, reconciliation
+- **Services** (against an in-memory Firestore double): cross-patient isolation, roles and sharing, invitations, medicine and dose lifecycle, notification idempotency and retries, the scanner, the assistant (tools, confirmation, prompt injection, quotas), tasks, handovers, reconciliation, AI provider fallback, the demo
+- **API and UI:** authentication, origin check, validation, rate limits, accessibility (axe, keyboard, accessible names, live regions, focus)
 
-- Rate limiting is in memory per server instance (best effort on serverless).
-- Uploads go through the API route, so the limit is 4 MB.
-- Reminder timing is as fine as the scheduler (5 minutes on the free GitHub Actions setup).
-- Emails include medicine names; email is not a secure channel.
-- Quiet hours also hold caregiver alerts; no "critical" bypass exists.
-- Reconciliation understands common frequency wording and compares only against daily schedules; unusual brand names can be missed. It reports possible differences, never errors.
-- DPDP, ABDM and FHIR compliance are **not** implemented or claimed.
+AI behavior is tested with scripted fake models, and the scanner and assistant were also run against **real Gemini** and OpenRouter with synthetic data. OpenCode is implemented and unit-tested but its free quota ran out during testing. The Firestore double is not Firestore itself, so security rules and indexes are verified by deploying them.
 
-## 11. Project layout
+---
 
-```
-src/app/            routes: (auth) pages, (app) dashboard and patients/[patientId]/*, invite, api/*
-src/components/     ui/ primitives, a11y/ (announcer, focus, display settings, read-aloud), app/ feature components
-src/lib/domain/     pure logic: scheduling, dose-state, adherence, escalation, permissions, schemas, handover, reconciliation
-src/lib/services/   server services (patients, care-circle, medications, doses, appointments, documents, notifications,
-                    jobs, dashboards, prescriptions, reconciliation, assistant, care-tasks, handovers, audit)
-src/lib/ai/         provider chain and fallback, prescription extraction, assistant tools, handover summarizer, usage quotas
-src/lib/auth|api|db|firebase|email|storage|client/   infrastructure
-functions/          optional Cloud Function scheduler
-.github/workflows/  tick.yml (free scheduler)
-tests/              domain, services, api, ui
-```
+# 🔐 Security
+
+Server-side authorization on every endpoint · Firestore rules deny all client access · Zod validation on every input · same-origin check on mutations · rate limits and per-user daily AI quotas · audit log of sensitive actions · private documents through short-lived signed links · magic-byte file checks · security headers · errors never include patient data · AI keys never reach the browser · AI sees no patient name or id.
+
+---
+
+# 👥 Team
+
+**Participant:** Nilutpal (solo)
+
+| Member | GitHub |
+|--------|--------|
+| Nilutpal | https://github.com/NeeL21YT |
+
+---
+
+# 🏆 Hackathon
+
+**Event:** PromptWars × Catalyst, organized by MnM (Makers Need More)
+
+**Date:** 15 November 2026
+
+**Challenge:** Elderly Care & Medication Management Platform
+
+---
+
+# 📄 License
+
+Developed by **Nilutpal** for the **PromptWars × Catalyst Hackathon 2026**.
