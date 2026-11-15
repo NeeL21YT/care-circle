@@ -1,5 +1,5 @@
 import "server-only";
-import { col, db, fromData, fromSnap, toData } from "@/lib/db";
+import { col, fromData, fromSnap, toData } from "@/lib/db";
 import { conflict, notFound, badRequest } from "@/lib/api/errors";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
@@ -16,6 +16,7 @@ import { reconcile, type ReconStatus } from "@/lib/domain/reconciliation";
 import { readDecisions, writeDecision, type ReconDecision } from "./reconciliation-store";
 import { DateTime } from "luxon";
 import { z } from "zod";
+import { runTx } from "@/lib/db/transaction";
 
 export interface PrescriptionExtractionRecord {
   id: string;
@@ -223,8 +224,7 @@ export async function approveMedication(user: CurrentUser, patientId: string, id
 
   // Reserve the slot transactionally so a double click cannot create two medicines.
   const ref = sub(patientId).doc(id);
-  await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; update(r: unknown, d: unknown): void };
+  await runTx(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw notFound("That extraction");
     const r = fromData<PrescriptionExtractionRecord>(snap.data());

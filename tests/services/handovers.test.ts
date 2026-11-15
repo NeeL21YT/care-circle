@@ -1,6 +1,7 @@
+import type { CareTask } from "@/lib/domain/types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { standardWorld, addMember, makeUser, MED_INPUT, PATIENT_INPUT } from "../helpers";
-import { __setAiClientForTests, type AiClient } from "@/lib/ai/client";
+import { __setAiClientForTests, type AiClient, type GenerateJsonRequest } from "@/lib/ai/client";
 import { AiError } from "@/lib/ai/errors";
 import { isGrounded, summarizeHandover } from "@/lib/ai/handover/summarizer";
 import { buildHandover, type HandoverItem } from "@/lib/domain/handover";
@@ -18,12 +19,12 @@ let aiLines: (items: { id: string; fact: string }[]) => Lines = () => [];
 let aiFails = false;
 let aiCalls = 0;
 const ai: AiClient = {
-  async generateJson(req) {
+  async generateJson<T>(req: GenerateJsonRequest<T>) {
     aiCalls++;
     if (aiFails) throw new AiError("ai_timeout");
     const text = (req.parts[0] as { text: string }).text;
     const items = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
-    return { data: { lines: aiLines(items) } as never, usage: { inputTokens: 1, outputTokens: 1 }, model: "gemini-x-flash" };
+    return { data: { lines: aiLines(items) } as unknown as T, usage: { inputTokens: 1, outputTokens: 1 }, model: "gemini-x-flash" };
   },
 };
 
@@ -168,7 +169,7 @@ describe("summary guards", () => {
       tasks: [
         { id: "a", title: "Overdue", dueAt: new Date("2026-11-15T08:00:00Z"), status: "pending", assignedToUid: "u", assignedToName: "Ravi", notes: [], createdAt: new Date("2026-11-14T12:00:00Z") },
         { id: "b", title: "Calm", dueAt: null, status: "accepted", assignedToUid: "u", assignedToName: "Ravi", notes: [], createdAt: new Date("2026-11-14T12:00:00Z") },
-      ] as never,
+      ] as unknown as CareTask[],
     }).items;
     const calm = items.find((i) => i.sourceId === "b")!;
     aiLines = () => [{ text: "The calm task is fine.", refs: [calm.id] }, { text: "A made-up task due at 9:99.", refs: [calm.id] }];

@@ -1,7 +1,7 @@
 import "server-only";
 import { DateTime } from "luxon";
 import { randomUUID } from "node:crypto";
-import { col, db, fromData, fromSnap, toData } from "@/lib/db";
+import { col, fromData, fromSnap, toData } from "@/lib/db";
 import { badRequest, conflict, notFound } from "@/lib/api/errors";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
@@ -12,6 +12,7 @@ import { OPEN_TASK_STATUSES, type CareTask, type Membership, type Patient, type 
 import { audit } from "./audit";
 import { logActivity } from "./care-activity";
 import { createNotificationOnce } from "./notifications";
+import { runTx } from "@/lib/db/transaction";
 
 const tasks = (patientId: string) => col.sub(patientId, "careTasks");
 const MAX_NOTES = 50;
@@ -146,8 +147,7 @@ export async function assignTask(user: CurrentUser, patientId: string, id: strin
   const assignee = toUid ? await resolveAssignee(patientId, toUid) : null;
 
   const ref = tasks(patientId).doc(id);
-  const updated = await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; update(r: unknown, d: unknown): void };
+  const updated = await runTx(async (t) => {
     const snap = await t.get(ref);
     const cur = fromData<CareTask>(snap.data());
     if (cur.assignedToUid !== task.assignedToUid) throw conflict("This task was just changed by someone else. Refresh and try again.");
@@ -181,8 +181,7 @@ export async function setTaskStatus(user: CurrentUser, patientId: string, id: st
   }
   const ref = tasks(patientId).doc(id);
   const now = new Date();
-  await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; update(r: unknown, d: unknown): void };
+  await runTx(async (t) => {
     const cur = fromData<CareTask>((await t.get(ref)).data());
     if (cur.status !== task.status) throw conflict("This task was just changed by someone else. Refresh and try again.");
     t.update(ref, {

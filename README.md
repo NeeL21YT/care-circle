@@ -1,5 +1,7 @@
 # 🤝 Care Circle
 
+[![CI](https://github.com/NeeL21YT/care-circle/actions/workflows/ci.yml/badge.svg)](https://github.com/NeeL21YT/care-circle/actions/workflows/ci.yml)
+
 > **One family. One shared care plan. Everyone knows what needs attention.**
 
 Care Circle is an AI-assisted, accessibility-first care coordination platform for older adults and the family who look after them. It was built for the **PromptWars × Catalyst hackathon** (MnM) for the challenge **Elderly Care & Medication Management Platform**.
@@ -267,4 +269,4 @@ Server-side authorization on every endpoint · Firestore rules deny all client a
 
 # 📄 License
 
-Developed by **Nilutpal** for the **PromptWars × Catalyst Hackathon 2026**.
+Released under the [MIT License](LICENSE). Developed by **Nilutpal** for the **PromptWars × Catalyst Hackathon 2026**.

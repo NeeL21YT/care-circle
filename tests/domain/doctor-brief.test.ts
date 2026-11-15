@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DoseStatus } from "@/lib/domain/types";
 import { ageFrom, briefActionSchema, buildDoctorBrief, SELF_REPORTED_LABEL, type BriefInput } from "@/lib/domain/doctor-brief";
 
 const now = new Date("2026-11-15T06:30:00Z");
@@ -9,7 +10,7 @@ const base: BriefInput = {
   appointment: { startsAt: new Date("2026-11-20T05:00:00Z"), appointmentType: "Checkup", doctorName: "Dr Rao", facility: null, location: null },
   medications: [], awaitingVerification: 0, doses: [], documents: [], notes: { questions: [], observations: [] },
 };
-const dose = (status: string, ago: number, name = "Metformin") => ({ id: `${status}${ago}`, medicationName: name, scheduledAt: new Date(now.getTime() - ago), status: status as never });
+const dose = (status: string, ago: number, name = "Metformin") => ({ id: `${status}${ago}`, medicationName: name, scheduledAt: new Date(now.getTime() - ago), status: status as DoseStatus });
 const med = (over: Record<string, unknown> = {}) => ({ id: "m", name: "Metformin", strength: "500 mg", doseAmount: 1, doseUnit: "tablet", schedule: { frequency: "daily" as const, times: ["08:00"] }, startDate: "2026-01-01", endDate: null, status: "active" as const, version: 1, createdAt: new Date(now.getTime() - 100 * day), updatedAt: new Date(now.getTime() - 100 * day), ...over });
 
 describe("buildDoctorBrief", () => {

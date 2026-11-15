@@ -1,6 +1,7 @@
 import "server-only";
-import { col, db, fromData } from "@/lib/db";
+import { col, fromData } from "@/lib/db";
 import type { MedSummary, ReconStatus } from "@/lib/domain/reconciliation";
+import { runTx } from "@/lib/db/transaction";
 
 export interface ReconDecision {
   status: ReconStatus;
@@ -38,8 +39,7 @@ export async function writeDecision(
   allow: (current: ReconDecision | undefined) => boolean,
 ): Promise<boolean> {
   const r = ref(patientId, extractionId);
-  return db().runTransaction(async (tx) => {
-    const t = tx as { get(x: unknown): Promise<{ exists: boolean; data(): unknown }>; set(x: unknown, d: unknown): void };
+  return runTx(async (t) => {
     const snap = await t.get(r);
     const cur: Doc = snap.exists ? fromData<Doc>(snap.data()) : { extractionId, patientId, decisions: {}, updatedAt: new Date() };
     if (!allow(cur.decisions[key])) return false;

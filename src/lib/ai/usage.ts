@@ -1,8 +1,9 @@
 import "server-only";
-import { col, db, fromData } from "@/lib/db";
+import { col, fromData } from "@/lib/db";
 import { AiError } from "./errors";
 import { aiConfig } from "./config";
 import type { TokenUsage } from "./client";
+import { runTx } from "@/lib/db/transaction";
 
 export type AiFeature = "prescription" | "assistant" | "document" | "voice" | "handover";
 
@@ -24,8 +25,7 @@ interface UsageDoc {
 export async function consumeQuota(patientId: string, uid: string, feature: AiFeature, now = new Date()) {
   const limit = aiConfig().dailyQuota[feature];
   const ref = col.sub(patientId, "aiUsage").doc(`${uid}_${day(now)}`);
-  await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; set(r: unknown, d: unknown): void };
+  await runTx(async (t) => {
     const snap = await t.get(ref);
     const cur: UsageDoc = snap.exists
       ? fromData<UsageDoc>(snap.data())

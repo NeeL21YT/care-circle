@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { col, db, fromData, fromSnap, toData } from "@/lib/db";
+import { col, fromData, fromSnap, toData } from "@/lib/db";
 import { conflict, notFound } from "@/lib/api/errors";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
@@ -12,6 +12,7 @@ import { listDocuments } from "./documents";
 import { listDoses } from "./doses";
 import { listMedications } from "./medications";
 import { listExtractions } from "./prescriptions";
+import { runTx } from "@/lib/db/transaction";
 
 const briefs = (patientId: string) => col.sub(patientId, "doctorBriefs");
 
@@ -61,8 +62,7 @@ export async function updateBrief(user: CurrentUser, patientId: string, appointm
 
   const ref = briefs(patientId).doc(appointmentId);
   const now = new Date();
-  const notes = await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; set(r: unknown, d: unknown): void };
+  const notes = await runTx(async (t) => {
     const snap = await t.get(ref);
     const cur: BriefNotes = snap.exists ? { questions: [], observations: [], ...fromData<Partial<BriefNotes>>(snap.data()) } : { questions: [], observations: [] };
     let { questions, observations } = cur;

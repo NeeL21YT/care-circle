@@ -1,5 +1,5 @@
 import "server-only";
-import { col, db, fromData, fromSnap, toData } from "@/lib/db";
+import { col, fromData, fromSnap, toData } from "@/lib/db";
 import { badRequest, conflict, notFound } from "@/lib/api/errors";
 import { requirePatientAccess } from "@/lib/auth/access";
 import type { CurrentUser } from "@/lib/auth/session";
@@ -11,6 +11,7 @@ import { consumeQuota, recordUsage } from "@/lib/ai/usage";
 import { fmtTime } from "@/lib/format";
 import { audit } from "./audit";
 import { recordDoseEvent, snoozeDose } from "./doses";
+import { runTx } from "@/lib/db/transaction";
 
 export interface Conversation {
   id: string;
@@ -156,8 +157,7 @@ export async function resolvePendingAction(user: CurrentUser, patientId: string,
   await ownConversation(user, patientId, cid);
   const ref = pend(patientId, cid).doc(actionId);
 
-  const action = await db().runTransaction(async (tx) => {
-    const t = tx as { get(r: unknown): Promise<{ exists: boolean; data(): unknown }>; update(r: unknown, d: unknown): void };
+  const action = await runTx(async (t) => {
     const snap = await t.get(ref);
     if (!snap.exists) throw notFound("That action");
     const a = fromData<PendingAction>(snap.data());

@@ -8,12 +8,13 @@ import { createMedication, listMedications, updateMedication } from "@/lib/servi
 import { createPatient } from "@/lib/services/patients";
 import { decide, getReconciliation } from "@/lib/services/reconciliation";
 import { listTasks } from "@/lib/services/care-tasks";
-import type { PrescriptionExtraction } from "@/lib/ai/prescription/schemas";
+import type { ExtractedMedication, PrescriptionExtraction } from "@/lib/ai/prescription/schemas";
+import type { MedicationInput } from "@/lib/domain/schemas";
 
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0]);
 __setFileStoreForTests({ save: async () => {}, remove: async () => {}, read: async () => PNG, signedUrl: async () => "https://signed.example/x" });
 
-const medX = (o: Record<string, unknown> = {}) => ({
+const medX = (o: Partial<ExtractedMedication> = {}): ExtractedMedication => ({
   nameAsWritten: "Tab Metformin 500 mg", normalizedName: "Metformin", ingredient: null, strength: "500 mg", dosageForm: "tablet",
   doseInstructionAsWritten: "1 tablet twice daily", doseAmount: 1, doseUnit: "tablet", route: null, frequencyAsWritten: "twice daily",
   timingAsWritten: null, durationAsWritten: null, startDate: null, endDate: null, specialInstructions: null,
@@ -22,11 +23,11 @@ const medX = (o: Record<string, unknown> = {}) => ({
 let scan: PrescriptionExtraction["medications"] = [];
 const ai: AiClient = { async generateJson<T>() { return { data: { documentType: "prescription", patientName: null, prescriber: { name: null, registrationNumber: null }, medications: scan, documentWarnings: [] } as unknown as T, usage: { inputTokens: 1, outputTokens: 1 }, model: "gemini-x-flash" }; } };
 
-async function world(meds: Record<string, unknown>[], existing: Record<string, unknown>[] = [{}]) {
+async function world(meds: ExtractedMedication[], existing: Partial<MedicationInput>[] = [{}]) {
   const w = await standardWorld();
   __setAiClientForTests(ai);
   for (const e of existing) await createMedication(w.caregiver, w.patient.id, { ...MED_INPUT, ...e });
-  scan = meds as never;
+  scan = meds;
   const doc = await uploadDocument(w.caregiver, w.patient.id, { name: "rx.png", bytes: PNG }, { title: "Rx", category: "prescription", description: null, sharedWithPatient: false });
   const x = await startExtraction(w.caregiver, w.patient.id, doc.id);
   return { ...w, doc, x };
