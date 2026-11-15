@@ -1,52 +1,62 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Volume2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FAILURE_MESSAGE, speak, speechSupported, stopSpeaking } from "@/lib/client/speech";
 import { useDisplaySettings } from "./display-settings";
 import { useAnnounce } from "./announcer";
 
 /**
- * Optional "read aloud" using the browser's speech synthesis. Complements (does
- * not replace) screen readers: it helps low-vision users and anyone who
- * prefers listening. Hidden when the browser has no speech support.
+ * Optional "read aloud" using the browser's speech synthesis (see lib/client/speech.ts for the Firefox
+ * workarounds). Complements (does not replace) screen readers. Hidden when the browser has no speech
+ * support; when it has support but cannot speak (no voice installed), it says so instead of staying silent.
  */
 export function ReadAloud({ text, label = "Read this aloud" }: { text: string; label?: string }) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const { settings } = useDisplaySettings();
   const announce = useAnnounce();
-  const utter = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser-only storage/APIs after mount; doing it during render would cause a hydration mismatch
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window);
-    return () => { if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel(); };
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser-only APIs after mount; doing it during render would cause a hydration mismatch
+    setSupported(speechSupported());
+    return () => stopSpeaking();
   }, []);
   if (!supported) return null;
 
   function start() {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = settings.speechRate;
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    utter.current = u;
+    setProblem(null);
     setSpeaking(true);
-    window.speechSynthesis.speak(u);
+    void speak(text, {
+      rate: settings.speechRate,
+      lang: document.documentElement.lang || "en",
+      onEnd: () => setSpeaking(false),
+      onError: (why) => {
+        setSpeaking(false);
+        setProblem(FAILURE_MESSAGE[why]);
+        announce(FAILURE_MESSAGE[why], "assertive");
+      },
+    });
   }
   function stop() {
-    window.speechSynthesis.cancel();
+    stopSpeaking();
     setSpeaking(false);
     announce("Stopped reading.");
   }
 
-  return speaking ? (
-    <Button variant="outline" size="lg" onClick={stop}>
-      <Square aria-hidden="true" /> Stop reading
-    </Button>
-  ) : (
-    <Button variant="outline" size="lg" onClick={start}>
-      <Volume2 aria-hidden="true" /> {label}
-    </Button>
+  return (
+    <span className="inline-flex max-w-full flex-col items-start gap-2">
+      {speaking ? (
+        <Button variant="outline" size="lg" onClick={stop}>
+          <Square aria-hidden="true" /> Stop reading
+        </Button>
+      ) : (
+        <Button variant="outline" size="lg" onClick={start}>
+          <Volume2 aria-hidden="true" /> {label}
+        </Button>
+      )}
+      {problem && <span role="status" className="block max-w-prose text-base text-destructive">{problem}</span>}
+    </span>
   );
 }
