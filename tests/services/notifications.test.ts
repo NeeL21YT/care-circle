@@ -150,7 +150,7 @@ describe("notification worker", () => {
     await runTick(at(1));
     // Add a second pending notification and race two delivery passes.
     const [key] = [...w.fake.docs.keys()].filter((k) => k.includes("/notifications/"));
-    const doc = w.fake.docs.get(key)! as any;
+    const doc = w.fake.docs.get(key)! as { deliveries: { email: Record<string, unknown> } };
     doc.deliveries.email = { ...doc.deliveries.email, status: "pending", attempts: 0, sentAt: null };
     sentEmails.length = 0;
     __setEmailSender(async (a) => { sentEmails.push(a); await new Promise((r) => setTimeout(r, 5)); return { sent: true, providerMessageId: "m", error: null }; });

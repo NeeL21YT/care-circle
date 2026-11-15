@@ -2,7 +2,6 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RotateCw, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,145 +10,10 @@ import { useAnnounce } from "@/components/a11y/announcer";
 import { api, ApiError, errorMessage } from "@/lib/client/api";
 import { LOW_CONFIDENCE } from "@/lib/ai/prescription/confidence";
 import type { ExtractedMedication } from "@/lib/ai/prescription/schemas";
-import { RECON_STATUS_LABEL, type Finding, type MedSummary, type ReconStatus } from "@/lib/domain/reconciliation";
-
-const DOSE_UNITS = ["tablet", "capsule", "ml", "mg", "drop", "puff", "patch", "unit", "other"];
-const FORMS = ["Tablet", "Capsule", "Liquid", "Injection", "Drops", "Inhaler", "Patch", "Cream or ointment", "Other"];
-const ROUTES = ["Oral", "Topical", "Inhaled", "Injection", "Eye", "Ear", "Other"];
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-const matchOption = (opts: string[], v: string | null) => opts.find((o) => o.toLowerCase() === (v ?? "").trim().toLowerCase()) ?? "";
-
-interface Draft {
-  name: string; strength: string; doseAmount: string; doseUnit: string; form: string; route: string;
-  frequency: "daily" | "every_n_days"; intervalDays: string; times: string;
-  startDate: string; endDate: string; instructions: string;
-}
-
-/** Missing values stay missing: nothing here is defaulted for the caregiver. */
-function toDraft(m: ExtractedMedication): Draft {
-  return {
-    name: m.normalizedName ?? m.nameAsWritten,
-    strength: m.strength ?? "",
-    doseAmount: m.doseAmount == null ? "" : String(m.doseAmount),
-    doseUnit: matchOption(DOSE_UNITS, m.doseUnit),
-    form: matchOption(FORMS, m.dosageForm),
-    route: matchOption(ROUTES, m.route),
-    frequency: "daily", intervalDays: "", times: "",
-    startDate: m.startDate ?? "", endDate: m.endDate ?? "",
-    instructions: m.specialInstructions ?? "",
-  };
-}
-
-function toMedicationInput(d: Draft) {
-  const times = d.times.split(/[,\s]+/).filter(Boolean);
-  return {
-    name: d.name,
-    strength: d.strength || null,
-    doseAmount: d.doseAmount === "" ? 0 : Number(d.doseAmount),
-    doseUnit: d.doseUnit,
-    form: d.form,
-    route: d.route,
-    schedule: d.frequency === "daily" ? { frequency: "daily", times } : { frequency: "every_n_days", times, intervalDays: Number(d.intervalDays) },
-    startDate: d.startDate,
-    endDate: d.endDate || null,
-    instructions: d.instructions || null,
-    status: "active",
-  };
-}
-
-function toExtracted(m: ExtractedMedication, d: Draft): ExtractedMedication {
-  return {
-    ...m,
-    normalizedName: d.name || null,
-    strength: d.strength || null,
-    doseAmount: d.doseAmount !== "" && Number(d.doseAmount) > 0 ? Number(d.doseAmount) : null,
-    doseUnit: d.doseUnit || null,
-    dosageForm: d.form || null,
-    route: d.route || null,
-    startDate: d.startDate || null,
-    endDate: d.endDate || null,
-    specialInstructions: d.instructions || null,
-  };
-}
-
-function Preview({ url, contentType }: { url: string; contentType: string }) {
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  if (contentType === "application/pdf") {
-    return (
-      <div className="space-y-2">
-        <iframe src={url} title="Original prescription (PDF). Use the viewer's own controls to change page or zoom." className="h-[70vh] w-full rounded-xl border-2" />
-        <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold underline">
-          <ExternalLink aria-hidden="true" className="size-4" /> Open the PDF in a new tab <span className="sr-only">(opens in a new tab)</span>
-        </a>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-2">
-      <div role="group" aria-label="Prescription image controls" className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => setZoom((z) => Math.min(4, z + 0.25))}><ZoomIn aria-hidden="true" /> Zoom in</Button>
-        <Button type="button" variant="outline" onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}><ZoomOut aria-hidden="true" /> Zoom out</Button>
-        <Button type="button" variant="outline" onClick={() => setRotation((r) => (r + 90) % 360)}><RotateCw aria-hidden="true" /> Rotate</Button>
-      </div>
-      <p className="text-sm text-muted-foreground" aria-live="polite">Zoom {Math.round(zoom * 100)}%, rotated {rotation} degrees</p>
-      <div className="max-h-[70vh] overflow-auto rounded-xl border-2 bg-muted" tabIndex={0} aria-label="Prescription image. Scroll to move around.">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt="The uploaded prescription" style={{ width: `${zoom * 100}%`, transform: `rotate(${rotation}deg)`, transformOrigin: "center" }} className="max-w-none" />
-      </div>
-    </div>
-  );
-}
-
-
-export interface ReconView {
-  key: string; index: number | null; incomingName: string | null; existing: MedSummary | null; findings: Finding[];
-  decision: { status: ReconStatus; decidedByName: string; decidedAt: string; note: string | null } | null; settled: boolean;
-}
-
-const DIFF_KIND: Record<string, string> = { changed_strength: "Strength", changed_dose: "Dose", changed_frequency: "How often" };
-
-/** Side-by-side comparison with the medicine already on the list. It reports POSSIBLE differences only. */
-function Comparison({ item, draft, med }: { item: ReconView; draft: Draft; med: ExtractedMedication }) {
-  const ex = item.existing;
-  if (!ex) return null;
-  const differs = new Set(item.findings.filter((f) => DIFF_KIND[f.kind]).map((f) => DIFF_KIND[f.kind]));
-  const rows: [string, string, string, boolean][] = [
-    ["Name", ex.name, draft.name || "Not entered", false],
-    ["Strength", ex.strength ?? "Not recorded", draft.strength || "Not found", differs.has("Strength")],
-    ["Dose", ex.dose, draft.doseAmount && draft.doseUnit ? `${draft.doseAmount} ${draft.doseUnit}` : "Not found", differs.has("Dose")],
-    ["How often", ex.frequency, med.frequencyAsWritten ?? med.doseInstructionAsWritten ?? "Not found", differs.has("How often")],
-    ["Status", ex.status.replace("_", " "), "Not yet added", false],
-  ];
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-base">
-        <caption className="mb-1 text-left font-bold">On your list now compared with this prescription</caption>
-        <thead><tr><th scope="col" className="border-b-2 p-2">Detail</th><th scope="col" className="border-b-2 p-2">On your list now</th><th scope="col" className="border-b-2 p-2">On this prescription</th></tr></thead>
-        <tbody>
-          {rows.map(([k, a, b, diff]) => (
-            <tr key={k} className={diff ? "bg-warning-bg" : undefined}>
-              <th scope="row" className="border-b p-2 font-semibold">{k}</th>
-              <td className="border-b p-2">{a}</td>
-              <td className="border-b p-2">{b}{diff && <strong> (possibly different)</strong>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function Findings({ findings }: { findings: Finding[] }) {
-  const shown = findings.filter((f) => !["low_confidence", "missing_strength"].includes(f.kind) || f.attention);
-  if (!shown.length) return null;
-  return (
-    <ul className="list-disc space-y-1 pl-5">
-      {shown.map((f, i) => <li key={i}>{f.attention && <strong>Please check: </strong>}{f.text}{f.existing && f.incoming ? ` (list: ${f.existing}; prescription: ${f.incoming})` : ""}</li>)}
-    </ul>
-  );
-}
+import { RECON_STATUS_LABEL, type ReconStatus } from "@/lib/domain/reconciliation";
+import { DOSE_UNITS, FORMS, ROUTES, TIME_RE, parseTimes, toChangePatch, toDraft, toExtracted, toMedicationInput, type Draft } from "@/lib/client/prescription-draft";
+import { Preview } from "./prescription-preview";
+import { Comparison, Findings, type ReconView } from "./reconciliation-comparison";
 
 export function PrescriptionReview({ patientId, extractionId, status, meds, warnings, approvals, previewUrl, contentType, failureMessage, recon }: {
   patientId: string; extractionId: string; status: string; meds: ExtractedMedication[]; warnings: string[];
@@ -185,7 +49,7 @@ export function PrescriptionReview({ patientId, extractionId, status, meds, warn
     setBusy(`approve-${i}`);
     setErrors((e) => ({ ...e, [i]: {} }));
     const d = drafts[i];
-    if (d.times.split(/[,\s]+/).filter(Boolean).some((t) => !TIME_RE.test(t)) || !d.times.trim()) {
+    if (parseTimes(d.times).some((t) => !TIME_RE.test(t)) || !d.times.trim()) {
       setErrors((e) => ({ ...e, [i]: { times: "Enter reminder times like 08:00, 20:00 (24-hour)." } }));
       say("error", "Check the reminder times.");
       setBusy(null);
@@ -222,21 +86,6 @@ export function PrescriptionReview({ patientId, extractionId, status, meds, warn
       say("success", ok);
       router.refresh();
     } catch (e) { say("error", errorMessage(e)); } finally { setBusy(null); }
-  }
-
-  /** Only the fields the person filled in are applied to the existing medicine; name and start date stay. */
-  function changePatch(d: Draft) {
-    const times = d.times.split(/[,\s]+/).filter(Boolean);
-    const patch: Record<string, unknown> = {};
-    if (d.strength.trim()) patch.strength = d.strength.trim();
-    if (d.doseAmount !== "" && Number(d.doseAmount) > 0) patch.doseAmount = Number(d.doseAmount);
-    if (d.doseUnit) patch.doseUnit = d.doseUnit;
-    if (d.form) patch.form = d.form;
-    if (d.route) patch.route = d.route;
-    if (d.endDate) patch.endDate = d.endDate;
-    if (d.instructions.trim()) patch.instructions = d.instructions.trim();
-    if (times.length && times.every((t) => TIME_RE.test(t))) patch.schedule = d.frequency === "daily" ? { frequency: "daily", times } : { frequency: "every_n_days", times, intervalDays: Number(d.intervalDays) };
-    return patch;
   }
 
   async function retry() {
@@ -304,7 +153,7 @@ export function PrescriptionReview({ patientId, extractionId, status, meds, warn
                       <div className="flex flex-wrap gap-2">
                         {r.existing && ["active", "on_hold", "draft"].includes(r.existing.status) && (
                           <>
-                            <Button type="button" disabled={busy !== null} onClick={() => window.confirm(`Apply the details you filled in to the existing "${r.existing!.name}"? The old details stay in its history.`) && decide(r.key, "confirmed_change", { medicationPatch: changePatch(d) }, `${r.existing!.name} was updated. The earlier version is kept in its history.`)}>
+                            <Button type="button" disabled={busy !== null} onClick={() => window.confirm(`Apply the details you filled in to the existing "${r.existing!.name}"? The old details stay in its history.`) && decide(r.key, "confirmed_change", { medicationPatch: toChangePatch(d) }, `${r.existing!.name} was updated. The earlier version is kept in its history.`)}>
                               Update the existing medicine with these details
                             </Button>
                             <Button type="button" variant="outline" disabled={busy !== null} onClick={() => decide(r.key, "unchanged", {}, "Kept the existing medicine as it is.")}>It is the same: keep what is on the list</Button>
@@ -389,3 +238,4 @@ export function PrescriptionReview({ patientId, extractionId, status, meds, warn
     </div>
   );
 }
+

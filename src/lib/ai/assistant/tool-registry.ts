@@ -59,7 +59,19 @@ interface ToolDef<S extends z.ZodType> {
   schema: S;
   run(ctx: ToolContext, args: z.infer<S>): Promise<unknown>;
 }
-const tool = <S extends z.ZodType>(t: ToolDef<S>) => t;
+export type ToolOutcome = { ok: true; result: unknown } | { ok: false; error: string };
+
+/** Binds a tool to its own schema so validated arguments reach `run` fully typed, with no casts at the call site. */
+const tool = <S extends z.ZodType>(t: ToolDef<S>) => ({
+  name: t.name,
+  description: t.description,
+  schema: t.schema as z.ZodType,
+  async execute(ctx: ToolContext, rawArgs: unknown): Promise<ToolOutcome> {
+    const parsed = t.schema.safeParse(rawArgs ?? {});
+    if (!parsed.success) return { ok: false, error: `Invalid arguments: ${parsed.error.issues.map((i) => i.message).join("; ")}` };
+    return { ok: true, result: await t.run(ctx, parsed.data) };
+  },
+});
 
 const MAX_DAYS = 14;
 const MAX_ROWS = 60;
@@ -271,20 +283,15 @@ async function loadDose(ctx: ToolContext, doseId: string, event: "snoozed" | "re
 }
 
 export function toolDeclarations(): ToolDeclaration[] {
-  return TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(z.toJSONSchema(t.schema as z.ZodType)) }));
+  return TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: toModelSchema(z.toJSONSchema(t.schema)) }));
 }
-
-export type ToolOutcome = { ok: true; result: unknown } | { ok: false; error: string };
 
 /** Validates and runs one model-requested call. Errors are reduced to safe, generic text. */
 export async function runTool(ctx: ToolContext, name: string, rawArgs: unknown): Promise<ToolOutcome> {
   const def = TOOLS.find((t) => t.name === name);
   if (!def) return { ok: false, error: "That tool does not exist." };
-  const parsed = def.schema.safeParse(rawArgs ?? {});
-  if (!parsed.success) return { ok: false, error: `Invalid arguments: ${parsed.error.issues.map((i) => i.message).join("; ")}` };
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return { ok: true, result: await def.run(ctx, parsed.data as any) };
+    return await def.execute(ctx, rawArgs);
   } catch (e) {
     if (e instanceof ForbiddenError) return { ok: false, error: "This person is not allowed to see or do that." };
     if (e instanceof InvalidTransitionError) return { ok: false, error: e.message };

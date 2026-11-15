@@ -5,7 +5,14 @@ import { aiClient, __setAiClientForTests } from "@/lib/ai/client";
 import { isAiConfigured } from "@/lib/ai/config";
 
 const ENV = ["OPENCODE_API_KEY", "OPENCODE_TEXT_MODEL", "OPENCODE_VISION_MODEL", "OPENCODE_BASE_URL", "GEMINI_API_KEY", "OPENROUTER_API_KEY", "OPENROUTER_TEXT_MODEL", "OPENROUTER_VISION_MODEL", "AI_PROVIDER"];
-let calls: { url: string; body: any; headers: Record<string, string> }[] = [];
+interface OaBody {
+  model: string;
+  provider?: { require_parameters: boolean };
+  response_format: { type: string; json_schema: { strict: boolean } };
+  messages: { role: string; tool_calls: { id: string }[]; tool_call_id: string }[];
+  tools: { type: string }[];
+}
+let calls: { url: string; body: OaBody; headers: Record<string, string> }[] = [];
 type Reply = { status?: number; json: unknown };
 let replies: Reply[] = [];
 
@@ -44,10 +51,10 @@ describe("OpenRouter structured output", () => {
   });
 
   it("encodes images as image_url and PDFs as file parts", () => {
-    const c = toOpenAiUserContent([{ inlineData: { mimeType: "image/png", data: "AAA" } }, { inlineData: { mimeType: "application/pdf", data: "BBB" } }, { text: "go" }]) as any[];
+    const c = toOpenAiUserContent([{ inlineData: { mimeType: "image/png", data: "AAA" } }, { inlineData: { mimeType: "application/pdf", data: "BBB" } }, { text: "go" }]) as { type: string; image_url?: unknown; file?: { file_data: string } }[];
     expect(c[0]).toEqual({ type: "image_url", image_url: { url: "data:image/png;base64,AAA" } });
     expect(c[1].type).toBe("file");
-    expect(c[1].file.file_data).toBe("data:application/pdf;base64,BBB");
+    expect(c[1].file?.file_data).toBe("data:application/pdf;base64,BBB");
     expect(c[2]).toEqual({ type: "text", text: "go" });
   });
 
@@ -86,7 +93,7 @@ describe("OpenRouter tool calling", () => {
     expect(r.calls).toEqual([{ name: "getMedicationList", args: {} }]);
     expect(r.model).toBe("openrouter:tool-model");
     const msgs = calls[0].body.messages;
-    expect(msgs.map((m: any) => m.role)).toEqual(["system", "user", "assistant", "tool"]);
+    expect(msgs.map((m) => m.role)).toEqual(["system", "user", "assistant", "tool"]);
     expect(msgs[2].tool_calls[0].id).toBe(msgs[3].tool_call_id);
     expect(calls[0].body.tools[0].type).toBe("function");
   });

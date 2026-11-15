@@ -1,5 +1,5 @@
 import "server-only";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, type Content } from "@google/genai";
 import { z } from "zod";
 import type { AiClient, GenerateJsonRequest, TokenUsage, ToolTurnRequest, ToolTurnResult } from "./contracts";
 import { AiError } from "./errors";
@@ -68,8 +68,7 @@ export class GeminiClient implements AiClient {
     try {
       const res = await this.sdk.models.generateContent({
         model,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        contents: req.contents as any,
+        contents: req.contents as Content[], // neutral parts are the SDK's parts, plus fields (thought signatures) that must round-trip
         config: {
           systemInstruction: req.system,
           tools: [{ functionDeclarations: req.tools.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters })) }],
