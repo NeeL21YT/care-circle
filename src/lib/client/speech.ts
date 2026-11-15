@@ -17,11 +17,12 @@ export interface SpeakOptions {
   lang: string;
   onStart?: () => void;
   onEnd?: () => void;
-  onError?: (why: SpeakFailure) => void;
+  /** `detail` is a short technical note (engine error and voice count) that helps diagnose a browser. */
+  onError?: (why: SpeakFailure, detail?: string) => void;
 }
 
 export const FAILURE_MESSAGE: Record<SpeakFailure, string> = {
-  no_voice: "This browser has no voice installed for reading aloud. Try another browser, or use your screen reader. (On Firefox for Linux, installing speech-dispatcher adds voices.)",
+  no_voice: "No voice is available for reading aloud on this device. Install one in your system settings (Windows: Settings > Time & language > Speech > Add voices. Mac: System Settings > Accessibility > Spoken Content > System voice. Linux: install speech-dispatcher), then reload this page. You can also use your screen reader.",
   blocked: "The browser blocked the sound. Press the button again.",
   failed: "Reading aloud did not start. You can try again, or use your screen reader.",
 };
@@ -31,7 +32,7 @@ export function speechSupported(): boolean {
 }
 
 /** Voices, waiting (briefly) for browsers that load them late. */
-export function getVoicesAsync(timeoutMs = 1500): Promise<SpeechSynthesisVoice[]> {
+export function getVoicesAsync(timeoutMs = 3000): Promise<SpeechSynthesisVoice[]> {
   const synth = window.speechSynthesis;
   const now = synth.getVoices();
   if (now.length) return Promise.resolve(now);
@@ -96,8 +97,10 @@ export async function speak(text: string, o: SpeakOptions): Promise<void> {
   const mine = ++session;
   const voices = await getVoicesAsync();
   if (mine !== session) return; // stopped or replaced while waiting for voices
-  if (!voices.length) return o.onError?.("no_voice");
+  // An empty list does not always mean "no speech": some Firefox builds report voices late or only after the
+  // first speak(). So we still try (letting the engine choose a voice), and only give up if nothing starts.
   const voice = pickVoice(voices, o.lang);
+  const voiceCount = voices.length;
   const parts = chunkText(text);
   if (!parts.length) return o.onEnd?.();
 
@@ -123,11 +126,16 @@ export async function speak(text: string, o: SpeakOptions): Promise<void> {
       const code = (e as SpeechSynthesisErrorEvent).error;
       if (code === "interrupted" || code === "canceled") return; // our own cancel()
       stopSpeaking();
-      o.onError?.(code === "not-allowed" ? "blocked" : code === "voice-unavailable" ? "no_voice" : "failed");
+      o.onError?.(code === "not-allowed" ? "blocked" : code === "voice-unavailable" ? "no_voice" : voiceCount === 0 ? "no_voice" : "failed", `engine error: ${code ?? "unknown"}; voices found: ${voiceCount}`);
     };
   });
   synth.resume(); // a previous page may have left the engine paused
   utterances.forEach((u) => synth.speak(u));
   // If nothing starts within a few seconds, say so instead of staying silent.
-  watchdog = setTimeout(() => { if (mine === session && !started) { stopSpeaking(); o.onError?.("failed"); } }, 5000);
+  watchdog = setTimeout(() => {
+    if (mine === session && !started) {
+      stopSpeaking();
+      o.onError?.(voiceCount === 0 ? "no_voice" : "failed", `nothing started within 5 seconds; voices found: ${voiceCount}`);
+    }
+  }, 5000);
 }

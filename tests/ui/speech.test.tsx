@@ -45,13 +45,13 @@ describe("voice choice", () => {
   });
   it("waits for voices that load late (Firefox)", async () => {
     voices = [];
-    const p = getVoicesAsync(1500);
+    const p = getVoicesAsync(3000);
     voices = [voice("en-US")];
     listeners.voiceschanged.forEach((f) => f());
     expect(await p).toHaveLength(1);
     voices = [];
-    const none = getVoicesAsync(1500);
-    await vi.advanceTimersByTimeAsync(1600);
+    const none = getVoicesAsync(3000);
+    await vi.advanceTimersByTimeAsync(3100);
     expect(await none).toHaveLength(0);
   });
 });
@@ -89,15 +89,31 @@ describe("speaking", () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
-  it("says so when the device has no voice installed", async () => {
+  it("still tries when the voice list is empty (some Firefox builds report voices late), then says so if nothing starts", async () => {
     voices = [];
-    const onError = vi.fn();
-    const p = speak("Hello.", { rate: 1, lang: "en", onError });
-    await vi.advanceTimersByTimeAsync(1700);
+    const onError = vi.fn(), onStart = vi.fn();
+    const p = speak("Hello.", { rate: 1, lang: "en", onError, onStart });
+    await vi.advanceTimersByTimeAsync(3200); // waited for voices, then spoke anyway
     await p;
-    expect(onError).toHaveBeenCalledWith("no_voice");
-    expect(spoken).toHaveLength(0);
-    expect(FAILURE_MESSAGE.no_voice).toMatch(/no voice installed/);
+    expect(spoken).toHaveLength(1); // it did try, letting the engine choose a voice
+    expect(spoken[0].voice).toBeNull();
+    expect(spoken[0].lang).toBe("en");
+    await vi.advanceTimersByTimeAsync(5200);
+    expect(onError).toHaveBeenCalledWith("no_voice", expect.stringMatching(/voices found: 0/));
+    expect(onStart).not.toHaveBeenCalled();
+    expect(FAILURE_MESSAGE.no_voice).toMatch(/Add voices/);
+  });
+
+  it("works when an empty list was only a timing problem: it speaks as soon as the engine starts", async () => {
+    voices = [];
+    const onStart = vi.fn(), onError = vi.fn();
+    const p = speak("Hello.", { rate: 1, lang: "en", onStart, onError });
+    await vi.advanceTimersByTimeAsync(3200);
+    await p;
+    spoken[0].onstart?.();
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(onStart).toHaveBeenCalledTimes(1);
+    expect(onError).not.toHaveBeenCalled(); // the watchdog is cleared once speech starts
   });
 
   it("reports errors, but ignores the 'interrupted' error caused by its own cancel()", async () => {
@@ -106,14 +122,14 @@ describe("speaking", () => {
     spoken[0].onerror?.({ error: "interrupted" });
     expect(onError).not.toHaveBeenCalled();
     spoken[0].onerror?.({ error: "not-allowed" });
-    expect(onError).toHaveBeenCalledWith("blocked");
+    expect(onError).toHaveBeenCalledWith("blocked", expect.stringMatching(/engine error: not-allowed/));
   });
 
   it("does not stay silent forever if nothing starts", async () => {
     const onError = vi.fn();
     await run("Hello.", { onError });
     await vi.advanceTimersByTimeAsync(5200);
-    expect(onError).toHaveBeenCalledWith("failed");
+    expect(onError).toHaveBeenCalledWith("failed", expect.stringMatching(/voices found: 1/));
   });
 
   it("a newer request replaces an older one, and stop cancels", async () => {

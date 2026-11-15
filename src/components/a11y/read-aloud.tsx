@@ -32,9 +32,9 @@ export function ReadAloud({ text, label = "Read this aloud" }: { text: string; l
       rate: settings.speechRate,
       lang: document.documentElement.lang || "en",
       onEnd: () => setSpeaking(false),
-      onError: (why) => {
+      onError: (why, detail) => {
         setSpeaking(false);
-        setProblem(FAILURE_MESSAGE[why]);
+        setProblem(`${FAILURE_MESSAGE[why]}${detail ? ` (Details: ${detail}.)` : ""}`);
         announce(FAILURE_MESSAGE[why], "assertive");
       },
     });
