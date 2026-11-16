@@ -6,7 +6,6 @@
 
 Care Circle is an AI-assisted, accessibility-first care coordination platform for older adults and the family who look after them. It was built for the **PromptWars × Catalyst hackathon** (MnM) for the challenge **Elderly Care & Medication Management Platform**.
 
-🌐 **Live demo:** https://care-circle-tan.vercel.app — press **Try the demo** on the home page. No sign-up needed.
 💻 **Source:** https://github.com/NeeL21YT/care-circle
 
 > Care Circle never gives medical advice, never diagnoses and never changes a medicine on its own. People decide; the software keeps everyone informed.
@@ -77,12 +76,7 @@ Care Circle goes beyond a reminder app. It is a **care coordination system**: de
 - Large type, high contrast, text-size settings, read-aloud, keyboard and screen-reader support
 - A simple "My day" screen for the patient; responsive from 320 px phones to desktop
 
-## 🎮 Demo Mode
-- One-click demo as a caregiver, patient or family member, with made-up family data
-- Uses the real app, not a mock. Invitations and email are switched off in the demo
 
-
----
 
 # 🎯 How It Answers the Challenge
 
@@ -176,7 +170,7 @@ Colors are chosen for WCAG 2.2 AA contrast and checked with automated axe tests 
 # 📌 Assumptions & Limitations
 
 - Each person has their own account; families agree who the primary caregiver is.
-- Times follow the patient's timezone. Demo data is **synthetic**.
+- Times follow the patient's timezone.
 - Email is used for reminders and contains the medicine name, so treat it as a demo channel.
 - Patients cannot add or edit their own medicines (caregiver-managed by design).
 - Rate limiting is in memory per server instance. Uploads are limited to 4 MB.
@@ -204,7 +198,6 @@ npm run typecheck && npm run lint && npm run build
 3. **Brevo**: `BREVO_API_KEY` and a verified sender in `EMAIL_FROM_ADDRESS`. Without it the app still works and records deliveries as skipped.
 4. **AI (optional)**: `GEMINI_API_KEY`. Leave the `GEMINI_*_MODEL` variables empty to auto-pick models, or give an ordered list `model-a,model-b`. Optionally `OPENROUTER_*` and `OPENCODE_*` (run `node --env-file=.env.local scripts/check-providers.mjs` to list models). `AI_PROVIDER` sets the order. Without any key the rest of the app still works.
 5. **`CRON_SECRET`**: a random string of 16+ characters that authorizes the scheduler.
-6. **`DEMO_MODE=true`** enables the demo buttons.
 
 Every variable is documented in `.env.example`. Never commit `.env.local`.
 
@@ -217,16 +210,9 @@ Every variable is documented in `.env.example`. Never commit `.env.local`.
 2. Add the Vercel domain to Firebase Authentication > Authorized domains.
 3. **Scheduler:** add the repository secrets `APP_URL` and `CRON_SECRET` in GitHub. The workflow in `.github/workflows/tick.yml` then calls `POST /api/jobs/tick` every 5 minutes. (Vercel's free plan only allows daily crons.)
 4. **Deployment notes:** `vercel.json` runs functions in `iad1`, next to the Firestore database (`nam5`), which makes pages several times faster than a distant region. `package.json` pins `jwks-rsa` 3 through npm `overrides`, because Vercel's runtime does not allow `require()` of ES modules and `firebase-admin` 14 otherwise crashes every request with `ERR_REQUIRE_ESM`. Do not remove it unless `firebase-admin` stops needing it.
-5. Open the live site once yourself before sharing it: the first ever visit seeds the demo data.
 
 </details>
 
-<details>
-<summary><b>The demo, in detail</b></summary>
-
-The demo accounts are real Firebase accounts with **no password**, reachable only through the demo button. The data is synthetic: a fictional patient with three medicines and several days of reported history (including a skipped dose and an open reminder), an upcoming appointment, three care tasks (one overdue and unassigned) and a handover already shared from the caregiver to the family member. Inviting people is switched off, so the demo can never send email. Visitors share one set of data. Set `DEMO_MODE=false` for real use. A sample prescription to scan can be downloaded from the demo banner: one medicine matches the list, one has a different strength and one is new.
-
-</details>
 
 ---
 
